@@ -3,6 +3,7 @@ import torch
 import json
 import argparse
 import logging
+import random
 
 from collections import defaultdict
 from torch.autograd import Variable
@@ -60,11 +61,15 @@ class Application(object):
                 id_symbol[i] = key
                 i += 1
 
+        self.relation_sym_range = (0, i-1)
+
         for key in ent2id.keys():
             if key not in ['', 'OOV']:
                 symbol_id[key] = i
                 id_symbol[i] = key
                 i += 1
+
+        self.ent_sym_range = (self.relation_sym_range[1]+1, i-1)
 
         symbol_id['PAD'] = i
         id_symbol[i] = 'PAD'
@@ -116,7 +121,7 @@ class Application(object):
             [self.e1_degrees[_] for _ in right])).cuda()
         return (left_connections, left_degrees, right_connections, right_degrees)
 
-    def run(self, meta=False):
+    def run(self, mode='new_rel', meta=False):
         self.matcher.eval()
 
         symbol2id = self.symbol2id
@@ -127,19 +132,22 @@ class Application(object):
 
         rel2candidates = self.rel2candidates
 
-        hits10 = []
-        hits5 = []
-        hits1 = []
-        mrr = []
-
         for query_ in tasks.keys():
 
-            hits10_ = []
-            hits5_ = []
-            hits1_ = []
-            mrr_ = []
+            if (mode == 'old_rel'):
+                candidates = rel2candidates[query_]
+            elif(mode == 'new_rel'):
+                candidates = []
+                # for index in range(self.ent_sym_range[0],self.ent_sym_range[1]):
+                #     candidates.append(self.id2symbol[index])
 
-            candidates = rel2candidates[query_]
+                candidates += rel2candidates[query_]
+                while(len(candidates) < 500):
+                    sample = random.randint(
+                        self.ent_sym_range[0], self.ent_sym_range[1])
+                    if(self.id2symbol[sample] not in candidates):
+                        candidates.append(self.id2symbol[sample])
+
             support_triples = tasks[query_][:few]
             support_pairs = [[symbol2id[triple[0]], symbol2id[triple[2]]]
                              for triple in support_triples]
@@ -154,24 +162,18 @@ class Application(object):
             support = Variable(torch.LongTensor(support_pairs)).cuda()
 
             for triple in tasks[query_][few:]:
-                true = triple[2]
                 query_pairs = []
-                query_pairs.append(
-                    [symbol2id[triple[0]], symbol2id[triple[2]]])
 
                 if meta:
                     query_left = []
                     query_right = []
-                    query_left.append(self.ent2id[triple[0]])
-                    query_right.append(self.ent2id[triple[2]])
 
                 for ent in candidates:
-                    if (ent not in self.e1rel_e2[triple[0]+triple[1]]) and ent != true:
-                        query_pairs.append(
-                            [symbol2id[triple[0]], symbol2id[ent]])
-                        if meta:
-                            query_left.append(self.ent2id[triple[0]])
-                            query_right.append(self.ent2id[ent])
+                    query_pairs.append(
+                        [symbol2id[triple[0]], symbol2id[ent]])
+                    if meta:
+                        query_left.append(self.ent2id[triple[0]])
+                        query_right.append(self.ent2id[ent])
 
                 query = Variable(torch.LongTensor(query_pairs)).cuda()
 
@@ -188,51 +190,27 @@ class Application(object):
 
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
-                ## How is this rank used to calculate MRR (Is this ground truth ?)
-                rank = sort.index(0) + 1
+
+                rel = self.id2symbol[query_pairs[sort.index(0)][0]]
+                top_e = self.id2symbol[query_pairs[sort.index(0)][1]]
+
+                print(rel, top_e)
 
                 for target_rank in range(10):
                     index = sort.index(target_rank)
                     query_pair = query_pairs[index]
-                    print('Rank',target_rank+1, ': Head=',self.id2symbol[query_pair[0]][8:],'Relation=',query_[8:] ,'Tail=',self.id2symbol[query_pair[1]][8:])
+                    print('Rank', target_rank+1, ': Head=', self.id2symbol[query_pair[0]][8:], 'Relation=', query_[
+                          8:], 'Tail=', self.id2symbol[query_pair[1]][8:])
 
-                if rank <= 10:
-                    hits10.append(1.0)
-                    hits10_.append(1.0)
-                else:
-                    hits10.append(0.0)
-                    hits10_.append(0.0)
-                if rank <= 5:
-                    hits5.append(1.0)
-                    hits5_.append(1.0)
-                else:
-                    hits5.append(0.0)
-                    hits5_.append(0.0)
-                if rank <= 1:
-                    hits1.append(1.0)
-                    hits1_.append(1.0)
-                else:
-                    hits1.append(0.0)
-                    hits1_.append(0.0)
-                mrr.append(1.0/rank)
-                mrr_.append(1.0/rank)
+                print("\nExisting Connecntions of top result")
+                neighbors_of_top = self.e1_rele2[top_e]
+                for rel, e2 in neighbors_of_top:
+                    print(top_e, self.id2symbol[rel], self.id2symbol[e2])
 
-            logging.critical('{} Hits10:{:.3f}, Hits5:{:.3f}, Hits1:{:.3f} MRR:{:.3f}'.format(
-                query_, np.mean(hits10_), np.mean(hits5_), np.mean(hits1_), np.mean(mrr_)))
-            logging.info('Number of candidates: {}, number of text examples {}'.format(
-                len(candidates), len(hits10_)))
-
-        logging.critical('HITS10: {:.3f}'.format(np.mean(hits10)))
-        logging.critical('HITS5: {:.3f}'.format(np.mean(hits5)))
-        logging.critical('HITS1: {:.3f}'.format(np.mean(hits1)))
-        logging.critical('MAP: {:.3f}'.format(np.mean(mrr)))
-
-        return np.mean(hits10), np.mean(hits5), np.mean(mrr)
-    
-    def run_(self):
+    def run_(self, mode):
         self.load()
         logging.info('Pre-trained model loaded')
-        self.run(self.meta)
+        self.run(mode, meta=self.meta)
 
 
 def read_args():
@@ -248,7 +226,9 @@ def read_args():
     parser.add_argument("--max_neighbor", default=200, type=int)
     parser.add_argument("--no_meta", action='store_true')
     parser.add_argument("--prefix", default='intial', type=str)
-    
+
+    parser.add_argument("--seed", default='19940419', type=int)
+
     # parser.add_argument("--log_every", default=50, type=int)
     # parser.add_argument("--eval_every", default=10000, type=int)
     # parser.add_argument("--neg_num", default=1, type=int)
@@ -261,7 +241,6 @@ def read_args():
     # parser.add_argument("--grad_clip", default=5.0, type=float)
     # parser.add_argument("--weight_decay", default=0.0, type=float)
     # parser.add_argument("--embed_model", default='ComplEx', type=str)
-    # parser.add_argument("--seed", default='19940419', type=int)
 
     parser.add_argument("--query_file", default='queries/query.json', type=str)
     parser.add_argument("--app_mode", default=1, type=int, choices=[1, 2])
@@ -275,6 +254,7 @@ def read_args():
     print("----------------------------")
 
     return args
+
 
 if __name__ == '__main__':
     args = read_args()
@@ -294,5 +274,11 @@ if __name__ == '__main__':
     logger.addHandler(ch)
     logger.addHandler(fh)
 
+    # setup random seeds
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+
     app = Application(args)
-    app.run_()
+    app.run_(mode='new_rel')
