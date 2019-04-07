@@ -162,6 +162,12 @@ class Application(object):
             support = Variable(torch.LongTensor(support_pairs)).cuda()
 
             for triple in tasks[query_][few:]:
+
+                print("\nExisting Connecntions of query head")
+                neighbors_of_top = self.e1_rele2[triple[0]]
+                for rel, e2 in neighbors_of_top:
+                    print(triple[0], self.id2symbol[rel], self.id2symbol[e2])
+
                 query_pairs = []
 
                 if meta:
@@ -194,6 +200,7 @@ class Application(object):
                 rel = self.id2symbol[query_pairs[sort[0]][0]]
                 top_e = self.id2symbol[query_pairs[sort[0]][1]]
 
+                print("\nTop 10 Results")
                 for target_rank in range(10):
                     index = sort[target_rank]
                     query_pair = query_pairs[index]
