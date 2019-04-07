@@ -7,9 +7,10 @@ import random
 
 from collections import defaultdict
 from torch.autograd import Variable
-from matcher import EmbedMatcher
 from tqdm import tqdm
 
+from matcher import EmbedMatcher
+from grapher import Graph
 
 class Application(object):
 
@@ -38,6 +39,7 @@ class Application(object):
 
         self.num_ents = len(self.ent2id.keys())
 
+
         logging.info('BUILDING CONNECTION MATRIX')
         self.build_connection(max_=self.max_neighbor)
 
@@ -48,6 +50,12 @@ class Application(object):
         # load answer dict
         self.e1rel_e2 = defaultdict(list)
         self.e1rel_e2 = json.load(open(self.dataset + '/e1rel_e2.json'))
+
+        # Create Graph object (for querying paths later on)
+        logging.info('BUILDING GRAPH OBJECT FOR {} DATASET'.format(arg.dataset))
+        self.graph=Graph(arg.dataset)
+        
+
 
     def load_symbol2id_ent2id_id2symbol(self):
         symbol_id = {}
@@ -211,6 +219,22 @@ class Application(object):
                 neighbors_of_top = self.e1_rele2[top_e]
                 for rel, e2 in neighbors_of_top:
                     print(top_e, self.id2symbol[rel], self.id2symbol[e2])
+
+                path_k=600
+                path_depth=1
+                print("\nFinding paths for k={} and depth={}".format(path_k,path_depth))
+                # e1=triple[0]
+                # e2=triple[2]
+                # paths=self.graph.pair_feature([triple[0],triple[2]],k=path_k,depth=path_depth)
+                e1=top_e
+                e2=self.id2symbol[neighbors_of_top[0][1]]
+                paths=self.graph.pair_feature([e1,e2],k=path_k,depth=path_depth)                
+                print("\nFound {} paths between {} & {}".format(len(paths),e1,e2))
+                for path in paths:
+                    print("*********")
+                    print(path)
+
+
 
     def run_(self, mode):
         self.load()

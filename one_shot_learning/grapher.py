@@ -76,13 +76,13 @@ def combine_vocab(rel2id_path, ent2id_path, rel_emb, ent_emb, symbol2id_path, sy
 
     # print symbol_id['PAD'] # PAD = 69557
 
-    rel_embed = np.loadtxt(rel_emb)
-    ent_embed = np.loadtxt(ent_emb)
+    # rel_embed = np.loadtxt(rel_emb)
+    # ent_embed = np.loadtxt(ent_emb)
 
-    symbol_embed = np.concatenate([rel_embed, ent_embed, np.zeros((1, rel_embed.shape[1]))])
+    # symbol_embed = np.concatenate([rel_embed, ent_embed, np.zeros((1, rel_embed.shape[1]))])
 
-    assert symbol_embed.shape[0] == len(symbol_id.keys()) == (num_symbols + 1)
-    np.savetxt(symbol2vec_path, symbol_embed)
+    # assert symbol_embed.shape[0] == len(symbol_id.keys()) == (num_symbols + 1)
+    # np.savetxt(symbol2vec_path, symbol_embed)
     json.dump(symbol_id, open(symbol2id_path, 'w'))
 
 class Graph(object):
@@ -181,9 +181,14 @@ class Graph(object):
         left = graphs[0]
         right = graphs[1]
 
+        print("\nSubgraph for {}:".format(pair[0]),left.keys())
+        print("\nSubgraph for {}:".format(pair[1]),right.keys())
+        
+
         intermediate = set(left.keys()).intersection(set(right.keys()))
         paths = []
         if len(list(intermediate)) == 0:
+            print("NO INTERMEDIATES")
             return paths
         for node in intermediate:
             l = left[node]
@@ -243,10 +248,10 @@ class Graph(object):
         data generator for training
         '''
         dataset = self.dataset
-        print 'LOAD TRAINING DATA'
+        print('LOAD TRAINING DATA')
         train_tasks = json.load(open(dataset + '/train_tasks.json'))
 
-        print 'BUILD CANDAIDATES FOR EVERY RELATION'
+        print('BUILD CANDAIDATES FOR EVERY RELATION')
         rel2candidates = json.load(open(dataset + '/rel2candidates.json'))
         task_pool = list(train_tasks.keys())
 
@@ -280,7 +285,7 @@ class Graph(object):
                     support_paths.append(self.encode_path(path))
 
             if len(support_paths) == 0:
-                print 'NO PATH FOUND, TRY AGAIN'
+                print('NO PATH FOUND, TRY AGAIN')
                 continue
 
             test_pos_paths = []
@@ -310,4 +315,5 @@ class Graph(object):
 
 
 if __name__ == '__main__':
-    combine_vocab('NELL/relation2ids_fix', 'NELL/ent2ids_fix', 'NELL/relation2vec_fix.bern', 'NELL/entity2vec_fix.bern', 'NELL/symbol2ids_fix', 'NELL/symbol2vec_fix.txt')
+    # combine_vocab('NELL/relation2ids_fix', 'NELL/ent2ids_fix', 'NELL/relation2vec_fix.bern', 'NELL/entity2vec_fix.bern', 'NELL/symbol2ids_fix', 'NELL/symbol2vec_fix.txt')
+    combine_vocab('NELL/relation2ids', 'NELL/ent2ids', 'NELL/relation2vec_fix.bern', 'NELL/entity2vec_fix.bern', 'NELL/symbol2ids', 'NELL/symbol2vec_fix.txt')
