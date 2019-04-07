@@ -366,9 +366,8 @@ class Trainer(object):
 
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
-                rank = sort.index(0) + 1 ## This line is incorrecct
-                # It should be
-                # rank = sort.index(self.symbol2id[true]) + 1
+                rank = sort.index(0) + 1 
+                
                 if rank <= 10:
                     hits10.append(1.0)
                     hits10_.append(1.0)

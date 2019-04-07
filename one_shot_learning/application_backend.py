@@ -194,8 +194,6 @@ class Application(object):
                 rel = self.id2symbol[query_pairs[sort.index(0)][0]]
                 top_e = self.id2symbol[query_pairs[sort.index(0)][1]]
 
-                print(rel, top_e)
-
                 for target_rank in range(10):
                     index = sort.index(target_rank)
                     query_pair = query_pairs[index]
