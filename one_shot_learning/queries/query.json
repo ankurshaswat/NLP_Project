@@ -1,0 +1,14 @@
+{
+    "concept:sportsgamesport": [
+        [
+            "concept:sportsgame:n1937_world_series",
+            "concept:sportsgamesport",
+            "concept:sport:baseball"
+        ],
+        [
+            "concept:sportsgame:n2003_world_series",
+            "concept:sportsgamesport",
+            "concept:sport:baseball"
+        ]
+    ]
+}

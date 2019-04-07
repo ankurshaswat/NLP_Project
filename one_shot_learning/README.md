@@ -11,28 +11,32 @@ The main idea of this model is a matching network that encodes the one-hop neigh
 ## Steps to run the experiments
 
 ### Requirements
-* ``Python 3.6.5 ``
+
+* ``Python 3.6.5``
 * ``PyTorch 0.4.1``
 * ``tensorboardX``
 * ``tqdm``
 
 ### Datasets
+
 * Download datasets [Wiki-One](http://nlp.cs.ucsb.edu/data/wiki.tar.gz) and [NELL-One](http://nlp.cs.ucsb.edu/data/nell.tar.gz)
 
-
 ### Pre-trained embeddings
+
 * [Wiki-One](http://nlp.cs.ucsb.edu/data/NELL/nell_emb.tar.gz)
 * [NELL-One](http://nlp.cs.ucsb.edu/data/Wiki/wiki_emb.tar.gz)
 
-
 ### Training
+
 * With random initialized embeddings: ``CUDA_VISIBLE_DEVICES=0 python trainer.py --max_neighbor 50  --fine_tune``
 * With pretrained embeddings: ``CUDA_VISIBLE_DEVICES=0 python trainer.py --max_neighbor 50  --fine_tune --embed_model ComplEx``
 
 ### Visualization
+
 ``tensorboard --logdir logs``
 
 ### Reference
+
 ```
 @article{xiong2018one,
   title={One-Shot Relational Learning for Knowledge Graphs},
