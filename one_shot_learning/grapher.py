@@ -7,13 +7,14 @@ from multiprocessing import Pool
 from time import time
 from itertools import product
 
+
 def subgraph(node, connections, k=300, depth=2, mode='random'):
     '''
     random walks,
     paths and endpoints
     '''
     initial = node
-    graph = defaultdict(list) 
+    graph = defaultdict(list)
     graph[node] = [[]]
     if mode == 'random':
         for i in range(k):
@@ -85,11 +86,13 @@ def combine_vocab(rel2id_path, ent2id_path, rel_emb, ent_emb, symbol2id_path, sy
     # np.savetxt(symbol2vec_path, symbol_embed)
     json.dump(symbol_id, open(symbol2id_path, 'w'))
 
+
 class Graph(object):
     """methods to process KB"""
+
     def __init__(self, path):
         super(Graph, self).__init__()
-        self.triples = [] # the graph for path finding
+        self.triples = []  # the graph for path finding
         self.dataset = path
         with open(path + '/path_graph') as f:
             for line in f:
@@ -97,11 +100,11 @@ class Graph(object):
                 rel = line.rstrip().split('\t')[1]
                 e2 = line.rstrip().split('\t')[2]
                 # if rel != relation:
-                    # self.triples.append([e1, rel, e2])
+                # self.triples.append([e1, rel, e2])
                 self.triples.append([e1, rel, e2])
 
         self.connections = defaultdict(list)
-        self._connections = defaultdict(list) # inverse connections
+        self._connections = defaultdict(list)  # inverse connections
 
         for triple in self.triples:
             e1, rel, e2 = triple
@@ -135,30 +138,31 @@ class Graph(object):
                     else:
                         new_layer.add(out[1])
                         for path in until_node:
-                            new_tracker[out[1]].add(path + ' - ' + out[0] + ' - ' + out[1])
+                            new_tracker[out[1]].add(
+                                path + ' - ' + out[0] + ' - ' + out[1])
             curr_layer = new_layer
             path_tracker = new_tracker
 
         paths = [node_pair[0] + ' - ' + item[1:] for item in paths]
-        return paths  
+        return paths
 
     def path_clean(self, path):
         symbols = path.split(' - ')
-        # print 'Uncleaned path: ', symbols   
+        # print 'Uncleaned path: ', symbols
         entities = []
         for idx, item in enumerate(symbols):
-            if idx%2 == 0:
+            if idx % 2 == 0:
                 entities.append(item)
         entity_stats = Counter(entities).items()
-        duplicate_ents = [item for item in entity_stats if item[1]!=1]
-        duplicate_ents.sort(key = lambda x:x[1], reverse=True)
+        duplicate_ents = [item for item in entity_stats if item[1] != 1]
+        duplicate_ents.sort(key=lambda x: x[1], reverse=True)
         for item in duplicate_ents:
             ent = item[0]
             ent_idx = [i for i, x in enumerate(symbols) if x == ent]
-            if len(ent_idx)!=0:
+            if len(ent_idx) != 0:
                 min_idx = min(ent_idx)
                 max_idx = max(ent_idx)
-                if min_idx!=max_idx:
+                if min_idx != max_idx:
                     symbols = symbols[:min_idx] + symbols[max_idx:]
 
         # print 'cleaned path: ', symbols
@@ -175,15 +179,18 @@ class Graph(object):
         # p.close()
         graphs = []
         graphs.append(subgraph(pair[0], self.connections, k, depth, mode=mode))
-        graphs.append(subgraph(pair[1], self._connections, k, depth, mode=mode))
+        graphs.append(
+            subgraph(pair[0], self._connections, k, depth, mode=mode))
+        graphs.append(subgraph(pair[1], self.connections, k, depth, mode=mode))
+        graphs.append(
+            subgraph(pair[1], self._connections, k, depth, mode=mode))
 
         # combine two subgraphs
         left = graphs[0]
         right = graphs[1]
 
-        print("\nSubgraph for {}:".format(pair[0]),left.keys())
-        print("\nSubgraph for {}:".format(pair[1]),right.keys())
-        
+        print("\nSubgraph for {} :".format(pair[0]), left.keys())
+        print("\nSubgraph for {} :".format(pair[1]), right.keys())
 
         intermediate = set(left.keys()).intersection(set(right.keys()))
         paths = []
@@ -222,7 +229,7 @@ class Graph(object):
 
                 if sub_path_2 == '':
                     path = sub_path_1
-                else: 
+                else:
                     path = sub_path_1 + ' - ' + sub_path_2
                 paths.append(path)
 
@@ -231,7 +238,7 @@ class Graph(object):
         cleaned_paths = []
         for path in paths:
             cleaned_paths.append(self.path_clean(path))
-                                
+
         return list(set(cleaned_paths))
 
     def encode_path(self, path, seq_len=13):
@@ -239,9 +246,9 @@ class Graph(object):
         path = path.split(' - ')
         for symbol in path:
             encoded.append(self.symbol2id[symbol])
-        encoded = np.pad(encoded, (0, seq_len-len(encoded)), 'constant', constant_values=(0, self.symbol2id['PAD']))
-        return encoded  
-
+        encoded = np.pad(encoded, (0, seq_len-len(encoded)),
+                         'constant', constant_values=(0, self.symbol2id['PAD']))
+        return encoded
 
     def train_generate(self, few=5, batch_size=50, num_neg=1):
         '''
@@ -309,11 +316,11 @@ class Graph(object):
                     paths_encoded.append(self.encode_path(path))
                 test_neg_paths.append(paths_encoded)
 
-            assert len(test_pos_paths) == len(test_neg_paths)    
+            assert len(test_pos_paths) == len(test_neg_paths)
             yield support_paths, test_pos_paths, test_neg_paths
-
 
 
 if __name__ == '__main__':
     # combine_vocab('NELL/relation2ids_fix', 'NELL/ent2ids_fix', 'NELL/relation2vec_fix.bern', 'NELL/entity2vec_fix.bern', 'NELL/symbol2ids_fix', 'NELL/symbol2vec_fix.txt')
-    combine_vocab('NELL/relation2ids', 'NELL/ent2ids', 'NELL/relation2vec_fix.bern', 'NELL/entity2vec_fix.bern', 'NELL/symbol2ids', 'NELL/symbol2vec_fix.txt')
+    combine_vocab('NELL/relation2ids', 'NELL/ent2ids', 'NELL/relation2vec_fix.bern',
+                  'NELL/entity2vec_fix.bern', 'NELL/symbol2ids', 'NELL/symbol2vec_fix.txt')
