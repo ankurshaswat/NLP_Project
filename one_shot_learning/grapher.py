@@ -109,7 +109,7 @@ class Graph(object):
         for triple in self.triples:
             e1, rel, e2 = triple
             self.connections[e1].append((rel, e2))
-            self._connections[e2].append((rel, e1))
+            self._connections[e2].append((rel+'_inv', e1))
 
         self.symbol2id = json.load(open(path + '/symbol2ids'))
 
