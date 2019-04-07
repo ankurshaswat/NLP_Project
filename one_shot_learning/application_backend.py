@@ -191,11 +191,11 @@ class Application(object):
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
 
-                rel = self.id2symbol[query_pairs[sort.index(0)][0]]
-                top_e = self.id2symbol[query_pairs[sort.index(0)][1]]
+                rel = self.id2symbol[query_pairs[sort[0]][0]]
+                top_e = self.id2symbol[query_pairs[sort[0]][1]]
 
                 for target_rank in range(10):
-                    index = sort.index(target_rank)
+                    index = sort[target_rank]
                     query_pair = query_pairs[index]
                     print('Rank', target_rank+1, ': Head=', self.id2symbol[query_pair[0]][8:], 'Relation=', query_[
                           8:], 'Tail=', self.id2symbol[query_pair[1]][8:])
