@@ -1,14 +1,14 @@
 {
     "concept:sportsgamesport": [
         [
-            "concept:sportsgame:n1937_world_series",
-            "concept:sportsgamesport",
-            "concept:sport:baseball"
+            "concept:sportsteam:cavaliers",
+            "concept:teamcoach",
+            "concept:personus:lebron_james"
         ],
         [
-            "concept:sportsteam:marlins",
-            "concept:sportsgamesport",
-            "DO NOT WRITE ANYTHING"
+            "concept:sportsteam:titans",
+            "concept:teamcoach",
+            "concept:coach:jeff_fisher"
         ]
     ]
 }

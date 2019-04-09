@@ -27,6 +27,9 @@ def read_options():
     parser.add_argument("--prefix", default='intial', type=str)
     parser.add_argument("--seed", default='19940419', type=int)
 
+    #added arguments
+    parser.add_argument("--save_results", action='store_true')
+
     args = parser.parse_args()
     # args.embed_path = args.dataset + '/symbol2vec.vec'
     args.save_path = 'models/' + args.prefix

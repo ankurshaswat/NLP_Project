@@ -109,7 +109,7 @@ class Graph(object):
         for triple in self.triples:
             e1, rel, e2 = triple
             self.connections[e1].append((rel, e2))
-            self._connections[e2].append((rel+'_inv', e1))
+            self._connections[e2].append((rel, e1))
 
         self.symbol2id = json.load(open(path + '/symbol2ids'))
 
@@ -179,24 +179,28 @@ class Graph(object):
         # p.close()
         graphs = []
         graphs.append(subgraph(pair[0], self.connections, k, depth, mode=mode))
-        graphs.append(
-            subgraph(pair[0], self._connections, k, depth, mode=mode))
-        graphs.append(subgraph(pair[1], self.connections, k, depth, mode=mode))
-        graphs.append(
-            subgraph(pair[1], self._connections, k, depth, mode=mode))
+        # graphs.append(subgraph(pair[0], self._connections, k, depth, mode=mode))
+        
+        # graphs.append(subgraph(pair[1], self.connections, k, depth, mode=mode))
+        graphs.append(subgraph(pair[1], self._connections, k, depth, mode=mode))
 
         # combine two subgraphs
         left = graphs[0]
         right = graphs[1]
 
-        print("\nSubgraph for {} :".format(pair[0]), left.keys())
-        print("\nSubgraph for {} :".format(pair[1]), right.keys())
+        # print("\nSubgraph for {} :".format(pair[0]), left.keys())
+        # print("\nSubgraph for {} :".format(pair[1]), right.keys())
+        
 
         intermediate = set(left.keys()).intersection(set(right.keys()))
         paths = []
         if len(list(intermediate)) == 0:
-            print("NO INTERMEDIATES")
+            # print("NO INTERMEDIATES")
             return paths
+        # else:
+            # print("INTERMEDIATES FOUND")
+            # print(list(intermediate))
+
         for node in intermediate:
             l = left[node]
             r = right[node]

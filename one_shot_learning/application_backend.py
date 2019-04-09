@@ -150,6 +150,9 @@ class Application(object):
                 #     candidates.append(self.id2symbol[index])
 
                 candidates += rel2candidates[query_]
+                print("\n\nQUERY: {}".format(query_))
+                print("\n\n CANDIDATES: ",candidates)
+
                 while(len(candidates) < 500):
                     sample = random.randint(
                         self.ent_sym_range[0], self.ent_sym_range[1])
@@ -205,6 +208,8 @@ class Application(object):
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
 
+                
+
                 rel = self.id2symbol[query_pairs[sort[0]][0]]
                 top_e = self.id2symbol[query_pairs[sort[0]][1]]
 
@@ -215,20 +220,20 @@ class Application(object):
                     print('Rank', target_rank+1, ': Head=', self.id2symbol[query_pair[0]][8:], 'Relation=', query_[
                           8:], 'Tail=', self.id2symbol[query_pair[1]][8:])
 
-                print("\nExisting Connecntions of top result")
+                print("\nExisting Connections of top result")
                 neighbors_of_top = self.e1_rele2[top_e]
                 for rel, e2 in neighbors_of_top:
                     print(top_e, self.id2symbol[rel], self.id2symbol[e2])
 
                 path_k=600
-                path_depth=1
+                path_depth=2
                 print("\nFinding paths for k={} and depth={}".format(path_k,path_depth))
-                # e1=triple[0]
-                # e2=triple[2]
-                # paths=self.graph.pair_feature([triple[0],triple[2]],k=path_k,depth=path_depth)
-                e1=top_e
-                e2=self.id2symbol[neighbors_of_top[0][1]]
-                paths=self.graph.pair_feature([e1,e2],k=path_k,depth=path_depth)                
+                e2=triple[0]
+                e1=triple[2]
+                paths=self.graph.pair_feature([e1,e2],k=path_k,depth=path_depth)
+                # e1=top_e
+                # e2=self.id2symbol[neighbors_of_top[0][1]]
+                # paths=self.graph.pair_feature([e2,e1],k=path_k,depth=path_depth)                
                 print("\nFound {} paths between {} & {}".format(len(paths),e1,e2))
                 for path in paths:
                     print("*********")

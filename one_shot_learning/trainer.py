@@ -1,6 +1,7 @@
 import json
 import logging
 import numpy as np
+import pickle
 import torch
 import torch.nn.functional as F
 
@@ -14,6 +15,7 @@ from args import read_options
 from data_loader import *
 from matcher import *
 from tensorboardX import SummaryWriter
+
 
 class Trainer(object):
     
@@ -297,7 +299,7 @@ class Trainer(object):
                 break
 
 
-    def eval(self, mode='dev', meta=False):
+    def eval(self, mode='dev', meta=False, save_results=False):
         self.matcher.eval()
 
         symbol2id = self.symbol2id
@@ -316,6 +318,8 @@ class Trainer(object):
         hits1 = []
         mrr = []
 
+        results={}
+
         for query_ in test_tasks.keys():
 
             hits10_ = []
@@ -327,6 +331,9 @@ class Trainer(object):
             support_triples = test_tasks[query_][:few]
             support_pairs = [[symbol2id[triple[0]], symbol2id[triple[2]]] for triple in support_triples]
 
+            triple_stats={}
+
+
             if meta:
                 support_left = [self.ent2id[triple[0]] for triple in support_triples]
                 support_right = [self.ent2id[triple[2]] for triple in support_triples]
@@ -335,9 +342,14 @@ class Trainer(object):
             support = Variable(torch.LongTensor(support_pairs)).cuda()
 
             for triple in test_tasks[query_][few:]:
+
                 true = triple[2]
                 query_pairs = []
                 query_pairs.append([symbol2id[triple[0]], symbol2id[triple[2]]])
+
+                id2ent={} #id to entity mapping
+                id2ent[symbol2id[triple[2]]]=triple[2]
+
 
                 if meta:
                     query_left = []
@@ -345,9 +357,11 @@ class Trainer(object):
                     query_left.append(self.ent2id[triple[0]])
                     query_right.append(self.ent2id[triple[2]])
 
+
                 for ent in candidates:
                     if (ent not in self.e1rel_e2[triple[0]+triple[1]]) and ent != true:
                         query_pairs.append([symbol2id[triple[0]], symbol2id[ent]])
+                        id2ent[symbol2id[ent]]=ent
                         if meta:
                             query_left.append(self.ent2id[triple[0]])
                             query_right.append(self.ent2id[ent])
@@ -367,7 +381,14 @@ class Trainer(object):
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
                 rank = sort.index(0) + 1 
-                
+
+                # for i in sort[:5]:
+                    # print(query_pairs[i])
+                # print(id2ent)
+                # print(id2ent[19176])
+                top5=[id2ent[query_pairs[i][1]] for i in sort[:5]]
+                triple_stats[triple[0]]=(true,rank,top5) 
+
                 if rank <= 10:
                     hits10.append(1.0)
                     hits10_.append(1.0)
@@ -389,6 +410,7 @@ class Trainer(object):
                 mrr.append(1.0/rank)
                 mrr_.append(1.0/rank)
 
+            results[str(support_triples)]=triple_stats
 
             logging.critical('{} Hits10:{:.3f}, Hits5:{:.3f}, Hits1:{:.3f} MRR:{:.3f}'.format(query_, np.mean(hits10_), np.mean(hits5_), np.mean(hits1_), np.mean(mrr_)))
             logging.info('Number of candidates: {}, number of text examples {}'.format(len(candidates), len(hits10_)))
@@ -397,6 +419,15 @@ class Trainer(object):
             # print 'HITS5: ', np.mean(hits5_)
             # print 'HITS1: ', np.mean(hits1_)
             # print 'MAP: ', np.mean(mrr_)
+            
+        if(save_results):
+            filename="{}_{}_results".format(self.dataset,mode)
+            with open(filename, "wb") as output_file:
+                pickle.dump(results, output_file)
+            print("Saved results for {} in {}".format(mode,filename))
+            example=list(results.keys())[0]
+            print(example)
+            print(results[example])
 
         logging.critical('HITS10: {:.3f}'.format(np.mean(hits10)))
         logging.critical('HITS5: {:.3f}'.format(np.mean(hits5)))
@@ -410,8 +441,8 @@ class Trainer(object):
     def test_(self):
         self.load()
         logging.info('Pre-trained model loaded')
-        self.eval(mode='dev', meta=self.meta)
-        self.eval(mode='test', meta=self.meta)
+        self.eval(mode='dev', meta=self.meta, save_results=self.save_results)
+        self.eval(mode='test', meta=self.meta, save_results=self.save_results)
 
 if __name__ == '__main__':
     args = read_options()
