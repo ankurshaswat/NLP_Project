@@ -150,6 +150,7 @@ class Application(object):
                 #     candidates.append(self.id2symbol[index])
 
                 candidates += rel2candidates[query_]
+                candidates=candidates[:4000]
                 print("\n\nQUERY: {}".format(query_))
                 print("\n\n CANDIDATES: ",candidates)
 
@@ -208,7 +209,7 @@ class Application(object):
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
 
-                
+
 
                 rel = self.id2symbol[query_pairs[sort[0]][0]]
                 top_e = self.id2symbol[query_pairs[sort[0]][1]]
@@ -219,6 +220,9 @@ class Application(object):
                     query_pair = query_pairs[index]
                     print('Rank', target_rank+1, ': Head=', self.id2symbol[query_pair[0]][8:], 'Relation=', query_[
                           8:], 'Tail=', self.id2symbol[query_pair[1]][8:])
+
+                    # if(target_rank==2):
+                        # top_e=query_pair[1]
 
                 print("\nExisting Connections of top result")
                 neighbors_of_top = self.e1_rele2[top_e]

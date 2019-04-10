@@ -1,14 +1,14 @@
 {
-    "concept:sportsgamesport": [
+    "concept:geopoliticallocationresidenceofpersion": [
         [
-            "concept:sportsteam:cavaliers",
-            "concept:teamcoach",
-            "concept:personus:lebron_james"
+            "concept:city:lancaster",
+            "concept:geopoliticallocationresidenceofpersion",
+            "concept:person:diana_greenough"
         ],
         [
-            "concept:sportsteam:titans",
-            "concept:teamcoach",
-            "concept:coach:jeff_fisher"
+            "concept:city:nashville",
+            "concept:geopoliticallocationresidenceofpersion",
+            "concept:politician:bill_purcell"
         ]
     ]
 }
