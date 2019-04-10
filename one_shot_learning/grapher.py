@@ -328,3 +328,5 @@ if __name__ == '__main__':
     # combine_vocab('NELL/relation2ids_fix', 'NELL/ent2ids_fix', 'NELL/relation2vec_fix.bern', 'NELL/entity2vec_fix.bern', 'NELL/symbol2ids_fix', 'NELL/symbol2vec_fix.txt')
     combine_vocab('NELL/relation2ids', 'NELL/ent2ids', 'NELL/relation2vec_fix.bern',
                   'NELL/entity2vec_fix.bern', 'NELL/symbol2ids', 'NELL/symbol2vec_fix.txt')
+    # combine_vocab('Wiki/relation2ids', 'Wiki/ent2ids', 'Wiki/relation2vec_fix.bern',
+                #   'Wiki/entity2vec_fix.bern', 'Wiki/symbol2ids', 'Wiki/symbol2vec_fix.txt')
