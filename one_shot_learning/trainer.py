@@ -92,6 +92,7 @@ class Trainer(object):
         #     self.ent_embed = None
         #     self.rel_matrices = None
         #     return
+        id_symbol = {}
 
         symbol_id = {}
         rel2id = json.load(open(self.dataset + '/relation2ids'))
@@ -100,16 +101,24 @@ class Trainer(object):
         for key in rel2id.keys():
             if key not in ['', 'OOV']:
                 symbol_id[key] = i
+                id_symbol[i] = key
+
                 i += 1
 
         for key in ent2id.keys():
             if key not in ['', 'OOV']:
                 symbol_id[key] = i
+                id_symbol[i] = key
+
                 i += 1
 
         symbol_id['PAD'] = i
+        id_symbol[i] = 'PAD'
+
         self.symbol2id = symbol_id
         self.symbol2vec = None
+        self.id2symbol = id_symbol
+
 
     def load_embed(self):
 
@@ -125,6 +134,8 @@ class Trainer(object):
         #     return
 
         symbol_id = {}
+        id_symbol = {}
+
         rel2id = json.load(open(self.dataset + '/relation2ids'))
         ent2id = json.load(open(self.dataset + '/ent2ids'))
 
@@ -153,21 +164,28 @@ class Trainer(object):
             for key in rel2id.keys():
                 if key not in ['', 'OOV']:
                     symbol_id[key] = i
+                    id_symbol[i] = key
+
                     i += 1
                     embeddings.append(list(rel_embed[rel2id[key], :]))
 
             for key in ent2id.keys():
                 if key not in ['', 'OOV']:
                     symbol_id[key] = i
+                    id_symbol[i] = key
                     i += 1
                     embeddings.append(list(ent_embed[ent2id[key], :]))
 
             symbol_id['PAD'] = i
+            id_symbol[i] = 'PAD'
+
             embeddings.append(list(np.zeros((rel_embed.shape[1],))))
             embeddings = np.array(embeddings)
             assert embeddings.shape[0] == len(symbol_id.keys())
 
             self.symbol2id = symbol_id
+            self.id2symbol = id_symbol
+
             self.symbol2vec = embeddings
 
     def build_connection(self, max_=100):
@@ -225,15 +243,105 @@ class Trainer(object):
         self.matcher.load_state_dict(torch.load(self.save_path))
 
     def get_meta(self, left, right):
-        left_connections = Variable(torch.LongTensor(
+        if self.add_extra_neighbours:
+        # Hello
+
+            left_connections = [self.connections[_, :, :] for _ in left]
+            left_degrees = [self.e1_degrees[_] for _ in left]
+
+            # for i in range(len(left)):
+            for i in range(1):
+                pos_to_add = left_degrees[i]
+
+                if pos_to_add >= self.max_neighbor:
+                    break
+
+                depth = 0
+                for j in range(self.max_neighbor):
+                    depth += 1
+
+                    ent = self.id2symbol[left_connections[i][j][1]]
+                    entId = self.ent2id[ent]
+
+                    connections = self.connections[entId , :, :]
+                    degree = self.e1_degrees[entId]
+                    # print(left_connections[0], left_degrees[0])
+                    # print(connections, degree)
+                    for k in range(degree):
+                        left_connections[i][pos_to_add] = connections[k]
+                        # print(self.id2symbol[left_connections[i][j][0]], self.id2symbol[left_connections[i]
+                                                                                        # [j][1]], self.id2symbol[connections[k][0]], self.id2symbol[connections[k][1]])
+                        pos_to_add += 1
+                        left_degrees[i] += 1
+                        if pos_to_add >= self.max_neighbor:
+                            break
+
+                    if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
+                        break
+
+            right_connections = [self.connections[_, :, :] for _ in left]
+            right_degrees = [self.e1_degrees[_] for _ in left]
+
+            for i in range(len(left)):
+                pos_to_add = right_degrees[i]
+
+                if pos_to_add >= self.max_neighbor:
+                    break
+                
+                depth = 0
+                for j in range(self.max_neighbor):
+                    depth += 1
+
+                    ent = self.id2symbol[right_connections[i][j][1]]
+                    entId = self.ent2id[ent]
+
+                    connections = self.connections[entId , :, :]
+                    degree = self.e1_degrees[entId]
+                    for k in range(degree):
+                        right_connections[i][pos_to_add] = connections[k]
+                        # print(connections[k])
+                        pos_to_add += 1
+                        right_degrees[i] += 1
+                        if pos_to_add >= self.max_neighbor:
+                            break
+
+                    if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
+                        break
+
+            left_connections_new = Variable(torch.LongTensor(
+                np.stack(left_connections, axis=0))).cuda()
+            left_degrees_new = Variable(torch.FloatTensor(
+                np.stack(left_degrees, axis=0))).cuda()
+            right_connections_new = Variable(torch.LongTensor(
+                np.stack(left_connections, axis=0))).cuda()
+            right_degrees_new = Variable(torch.FloatTensor(
+                np.stack(left_degrees, axis=0))).cuda()
+        
+        else:
+
+            left_connections = Variable(torch.LongTensor(
             np.stack([self.connections[_, :, :] for _ in left], axis=0))).cuda()
-        left_degrees = Variable(torch.FloatTensor(
+            left_degrees = Variable(torch.FloatTensor(
             [self.e1_degrees[_] for _ in left])).cuda()
-        right_connections = Variable(torch.LongTensor(
-            np.stack([self.connections[_, :, :] for _ in right], axis=0))).cuda()
-        right_degrees = Variable(torch.FloatTensor(
-            [self.e1_degrees[_] for _ in right])).cuda()
-        return (left_connections, left_degrees, right_connections, right_degrees)
+            right_connections = Variable(torch.LongTensor(
+                np.stack([self.connections[_, :, :] for _ in right], axis=0))).cuda()
+            right_degrees = Variable(torch.FloatTensor(
+                [self.e1_degrees[_] for _ in right])).cuda()
+            return (left_connections, left_degrees, right_connections, right_degrees)
+
+        return (left_connections_new, left_degrees_new, right_connections_new, right_degrees_new)
+
+
+    # def get_meta(self, left, right):
+    #     left_connections = Variable(torch.LongTensor(
+    #         np.stack([self.connections[_, :, :] for _ in left], axis=0))).cuda()
+    #     left_degrees = Variable(torch.FloatTensor(
+    #         [self.e1_degrees[_] for _ in left])).cuda()
+    #     right_connections = Variable(torch.LongTensor(
+    #         np.stack([self.connections[_, :, :] for _ in right], axis=0))).cuda()
+    #     right_degrees = Variable(torch.FloatTensor(
+    #         [self.e1_degrees[_] for _ in right])).cuda()
+    #     return (left_connections, left_degrees, right_connections, right_degrees)
 
     def train(self):
         if not self.no_continue_training:
