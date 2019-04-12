@@ -12,6 +12,7 @@ from tqdm import tqdm
 from matcher import EmbedMatcher
 from grapher import Graph
 
+
 class Application(object):
 
     def __init__(self, arg):
@@ -39,7 +40,6 @@ class Application(object):
 
         self.num_ents = len(self.ent2id.keys())
 
-
         logging.info('BUILDING CONNECTION MATRIX')
         self.build_connection(max_=self.max_neighbor)
 
@@ -52,10 +52,9 @@ class Application(object):
         self.e1rel_e2 = json.load(open(self.dataset + '/e1rel_e2.json'))
 
         # Create Graph object (for querying paths later on)
-        logging.info('BUILDING GRAPH OBJECT FOR {} DATASET'.format(arg.dataset))
-        self.graph=Graph(arg.dataset)
-        
-
+        logging.info(
+            'BUILDING GRAPH OBJECT FOR {} DATASET'.format(arg.dataset))
+        self.graph = Graph(arg.dataset)
 
     def load_symbol2id_ent2id_id2symbol(self):
         symbol_id = {}
@@ -151,7 +150,7 @@ class Application(object):
 
                 candidates += rel2candidates[query_]
                 print("\n\nQUERY: {}".format(query_))
-                print("\n\n CANDIDATES: ",candidates)
+                print("\n\n CANDIDATES: ", candidates)
 
                 while(len(candidates) < 500):
                     sample = random.randint(
@@ -208,8 +207,6 @@ class Application(object):
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
 
-                
-
                 rel = self.id2symbol[query_pairs[sort[0]][0]]
                 top_e = self.id2symbol[query_pairs[sort[0]][1]]
 
@@ -225,26 +222,26 @@ class Application(object):
                 for rel, e2 in neighbors_of_top:
                     print(top_e, self.id2symbol[rel], self.id2symbol[e2])
 
-                path_k=600
-                path_depth=2
-                print("\nFinding paths for k={} and depth={}".format(path_k,path_depth))
-                e2=triple[0]
-                e1=triple[2]
-                paths=self.graph.pair_feature([e1,e2],k=path_k,depth=path_depth)
+                path_k = 600
+                path_depth = 2
+                print("\nFinding paths for k={} and depth={}".format(
+                    path_k, path_depth))
+                e2 = triple[0]
+                e1 = triple[2]
+                paths = self.graph.pair_feature(
+                    [e1, e2], k=path_k, depth=path_depth)
                 # e1=top_e
                 # e2=self.id2symbol[neighbors_of_top[0][1]]
-                # paths=self.graph.pair_feature([e2,e1],k=path_k,depth=path_depth)                
-                print("\nFound {} paths between {} & {}".format(len(paths),e1,e2))
+                # paths=self.graph.pair_feature([e2,e1],k=path_k,depth=path_depth)
+                print("\nFound {} paths between {} & {}".format(len(paths), e1, e2))
                 for path in paths:
                     print("*********")
                     print(path)
 
-
-
-    def run_(self, mode):
+    def run_(self):
         self.load()
         logging.info('Pre-trained model loaded')
-        self.run(mode, meta=self.meta)
+        self.run(mode=self.app_mode, meta=self.meta)
 
 
 def read_args():
@@ -277,7 +274,8 @@ def read_args():
     # parser.add_argument("--embed_model", default='ComplEx', type=str)
 
     parser.add_argument("--query_file", default='queries/query.json', type=str)
-    parser.add_argument("--app_mode", default=1, type=int, choices=[1, 2])
+    parser.add_argument("--app_mode", default='new_rel',
+                        type=str, choices=['new_rel', 'old_rel'])
 
     args = parser.parse_args()
     args.save_path = 'models/' + args.prefix
@@ -315,4 +313,4 @@ if __name__ == '__main__':
     torch.cuda.manual_seed_all(args.seed)
 
     app = Application(args)
-    app.run_(mode='new_rel')
+    app.run_()
