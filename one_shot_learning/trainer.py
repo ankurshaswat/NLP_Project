@@ -252,13 +252,14 @@ class Trainer(object):
             for i in range(len(left)):
             # for i in range(1):
                 pos_to_add = left_degrees[i]
+                degree_threshold = left_degrees[i]
 
                 if pos_to_add >= self.max_neighbor:
                     break
 
                 depth = 0
                 for j in range(self.max_neighbor):
-                    depth += 1
+                    # depth += 1
 
                     ent = self.id2symbol[left_connections[i][j][1]]
                     entId = self.ent2id[ent]
@@ -276,6 +277,10 @@ class Trainer(object):
                         if pos_to_add >= self.max_neighbor:
                             break
 
+                    if j == degree_threshold-1:
+                        depth += 1
+                        degree_threshold = left_degrees[i]
+
                     if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
                         break
 
@@ -284,13 +289,14 @@ class Trainer(object):
 
             for i in range(len(right)):
                 pos_to_add = right_degrees[i]
+                degree_threshold = right_degrees[i]
 
                 if pos_to_add >= self.max_neighbor:
                     break
                 
                 depth = 0
                 for j in range(self.max_neighbor):
-                    depth += 1
+                    # depth += 1
 
                     ent = self.id2symbol[right_connections[i][j][1]]
                     entId = self.ent2id[ent]
@@ -304,6 +310,10 @@ class Trainer(object):
                         right_degrees[i] += 1
                         if pos_to_add >= self.max_neighbor:
                             break
+
+                    if j == degree_threshold-1:
+                        depth += 1
+                        degree_threshold = right_degrees[i]
 
                     if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
                         break
