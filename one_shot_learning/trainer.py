@@ -249,8 +249,8 @@ class Trainer(object):
             left_connections = [self.connections[_, :, :] for _ in left]
             left_degrees = [self.e1_degrees[_] for _ in left]
 
-            # for i in range(len(left)):
-            for i in range(1):
+            for i in range(len(left)):
+            # for i in range(1):
                 pos_to_add = left_degrees[i]
 
                 if pos_to_add >= self.max_neighbor:
@@ -279,10 +279,10 @@ class Trainer(object):
                     if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
                         break
 
-            right_connections = [self.connections[_, :, :] for _ in left]
-            right_degrees = [self.e1_degrees[_] for _ in left]
+            right_connections = [self.connections[_, :, :] for _ in right]
+            right_degrees = [self.e1_degrees[_] for _ in right]
 
-            for i in range(len(left)):
+            for i in range(len(right)):
                 pos_to_add = right_degrees[i]
 
                 if pos_to_add >= self.max_neighbor:

@@ -126,8 +126,8 @@ class Application(object):
             left_connections = [self.connections[_, :, :] for _ in left]
             left_degrees = [self.e1_degrees[_] for _ in left]
 
-            # for i in range(len(left)):
-            for i in range(1):
+            for i in range(len(left)):
+            # for i in range(1):
                 pos_to_add = left_degrees[i]
 
                 if pos_to_add >= self.max_neighbor:
@@ -156,11 +156,11 @@ class Application(object):
                     if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
                         break
                         
-            right_connections = [self.connections[_, :, :] for _ in left]
-            right_degrees = [self.e1_degrees[_] for _ in left]
+            right_connections = [self.connections[_, :, :] for _ in right]
+            right_degrees = [self.e1_degrees[_] for _ in right]
 
           
-            for i in range(len(left)):
+            for i in range(len(right)):
                 pos_to_add = right_degrees[i]
 
                 if pos_to_add >= self.max_neighbor:
@@ -346,7 +346,7 @@ def read_args():
     parser.add_argument("--process_steps", default=2, type=int)
     parser.add_argument("--fine_tune", action='store_true')
     parser.add_argument("--aggregate", default='max', type=str)
-    parser.add_argument("--max_neighbor", default=200, type=int)
+    parser.add_argument("--max_neighbor", default=50, type=int)
     parser.add_argument("--no_meta", action='store_true')
     parser.add_argument("--prefix", default='intial', type=str)
 
@@ -369,7 +369,7 @@ def read_args():
     parser.add_argument("--app_mode", default='new_rel',
                         type=str, choices=['new_rel', 'old_rel'])
     parser.add_argument("--add_extra_neighbours", action='store_true')
-    parser.add_argument("--max_extra_neighbor_depth", type=int, default=100)
+    parser.add_argument("--max_extra_neighbor_depth", type=int, default=1)
     args = parser.parse_args()
     args.save_path = 'models/' + args.prefix
 

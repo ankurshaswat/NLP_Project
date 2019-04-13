@@ -18,7 +18,7 @@ def read_options():
     parser.add_argument("--eval_every", default=10000, type=int)
     parser.add_argument("--fine_tune", action='store_true')
     parser.add_argument("--aggregate", default='max', type=str)
-    parser.add_argument("--max_neighbor", default=200, type=int)
+    parser.add_argument("--max_neighbor", default=50, type=int)
     parser.add_argument("--no_meta", action='store_true')
     parser.add_argument("--test", action='store_true')
     parser.add_argument("--grad_clip", default=5.0, type=float)
@@ -31,7 +31,7 @@ def read_options():
     parser.add_argument("--save_results", action='store_true')
     parser.add_argument("--no_continue_training", action='store_true')
     parser.add_argument("--add_extra_neighbours", action='store_true')
-    parser.add_argument("--max_extra_neighbor_depth", type=int, default=100)
+    parser.add_argument("--max_extra_neighbor_depth", type=int, default=1)
 
     args = parser.parse_args()
     # args.embed_path = args.dataset + '/symbol2vec.vec'
