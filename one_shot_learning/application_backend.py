@@ -12,6 +12,7 @@ from tqdm import tqdm
 from matcher import EmbedMatcher
 from grapher import Graph
 
+
 class Application(object):
 
     def __init__(self, arg):
@@ -39,7 +40,6 @@ class Application(object):
 
         self.num_ents = len(self.ent2id.keys())
 
-
         logging.info('BUILDING CONNECTION MATRIX')
         self.build_connection(max_=self.max_neighbor)
 
@@ -52,10 +52,9 @@ class Application(object):
         self.e1rel_e2 = json.load(open(self.dataset + '/e1rel_e2.json'))
 
         # Create Graph object (for querying paths later on)
-        logging.info('BUILDING GRAPH OBJECT FOR {} DATASET'.format(arg.dataset))
-        self.graph=Graph(arg.dataset)
-        
-
+        logging.info(
+            'BUILDING GRAPH OBJECT FOR {} DATASET'.format(arg.dataset))
+        self.graph = Graph(arg.dataset)
 
     def load_symbol2id_ent2id_id2symbol(self):
         symbol_id = {}
@@ -119,15 +118,96 @@ class Application(object):
         self.matcher.load_state_dict(torch.load(self.save_path))
 
     def get_meta(self, left, right):
-        left_connections = Variable(torch.LongTensor(
+
+
+        if self.add_extra_neighbours:
+        # Hello
+
+            left_connections = [self.connections[_, :, :] for _ in left]
+            left_degrees = [self.e1_degrees[_] for _ in left]
+
+            # for i in range(len(left)):
+            for i in range(1):
+                pos_to_add = left_degrees[i]
+
+                if pos_to_add >= self.max_neighbor:
+                    break
+
+                depth = 0
+                for j in range(self.max_neighbor):
+                    depth += 1
+
+                    ent = self.id2symbol[left_connections[i][j][1]]
+                    entId = self.ent2id[ent]
+
+                    connections = self.connections[entId , :, :]
+                    degree = self.e1_degrees[entId]
+                    # print(left_connections[0], left_degrees[0])
+                    # print(connections, degree)
+                    for k in range(degree):
+                        left_connections[i][pos_to_add] = connections[k]
+                        # print(self.id2symbol[left_connections[i][j][0]], self.id2symbol[left_connections[i]
+                                                                                        # [j][1]], self.id2symbol[connections[k][0]], self.id2symbol[connections[k][1]])
+                        pos_to_add += 1
+                        left_degrees[i] += 1
+                        if pos_to_add >= self.max_neighbor:
+                            break
+
+                    if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
+                        break
+                        
+            right_connections = [self.connections[_, :, :] for _ in left]
+            right_degrees = [self.e1_degrees[_] for _ in left]
+
+          
+            for i in range(len(left)):
+                pos_to_add = right_degrees[i]
+
+                if pos_to_add >= self.max_neighbor:
+                    break
+                
+                depth = 0
+                for j in range(self.max_neighbor):
+                    depth += 1
+
+                    ent = self.id2symbol[right_connections[i][j][1]]
+                    entId = self.ent2id[ent]
+
+                    connections = self.connections[entId , :, :]
+                    degree = self.e1_degrees[entId]
+                    for k in range(degree):
+                        right_connections[i][pos_to_add] = connections[k]
+                        # print(connections[k])
+                        pos_to_add += 1
+                        right_degrees[i] += 1
+                        if pos_to_add >= self.max_neighbor:
+                            break
+
+                    if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
+                        break
+
+            left_connections_new = Variable(torch.LongTensor(
+                np.stack(left_connections, axis=0))).cuda()
+            left_degrees_new = Variable(torch.FloatTensor(
+                np.stack(left_degrees, axis=0))).cuda()
+            right_connections_new = Variable(torch.LongTensor(
+                np.stack(left_connections, axis=0))).cuda()
+            right_degrees_new = Variable(torch.FloatTensor(
+                np.stack(left_degrees, axis=0))).cuda()
+        
+        else:
+
+            left_connections = Variable(torch.LongTensor(
             np.stack([self.connections[_, :, :] for _ in left], axis=0))).cuda()
-        left_degrees = Variable(torch.FloatTensor(
+            left_degrees = Variable(torch.FloatTensor(
             [self.e1_degrees[_] for _ in left])).cuda()
-        right_connections = Variable(torch.LongTensor(
-            np.stack([self.connections[_, :, :] for _ in right], axis=0))).cuda()
-        right_degrees = Variable(torch.FloatTensor(
-            [self.e1_degrees[_] for _ in right])).cuda()
-        return (left_connections, left_degrees, right_connections, right_degrees)
+            right_connections = Variable(torch.LongTensor(
+                np.stack([self.connections[_, :, :] for _ in right], axis=0))).cuda()
+            right_degrees = Variable(torch.FloatTensor(
+                [self.e1_degrees[_] for _ in right])).cuda()
+            return (left_connections, left_degrees, right_connections, right_degrees)
+
+        return (left_connections_new, left_degrees_new, right_connections_new, right_degrees_new)
 
     def run(self, mode='new_rel', meta=False):
         self.matcher.eval()
@@ -150,7 +230,8 @@ class Application(object):
                 #     candidates.append(self.id2symbol[index])
 
                 candidates += rel2candidates[query_]
-                # candidates=candidates[:2000]
+                print("\n\nQUERY: {}".format(query_))
+                print("\n\n CANDIDATES: ", candidates)
 
                 while(len(candidates) < 500):
                     sample = random.randint(
@@ -177,7 +258,8 @@ class Application(object):
             support = Variable(torch.LongTensor(support_pairs)).cuda()
 
             for triple in tasks[query_][few:]:
-                print("\nExisting Connecntions of query head")
+
+                print("\nExisting Connections of query head")
                 neighbors_of_top = self.e1_rele2[triple[0]]
                 for rel, e2 in neighbors_of_top:
                     print(triple[0], self.id2symbol[rel], self.id2symbol[e2])
@@ -190,12 +272,12 @@ class Application(object):
                     query_right = []
 
                 for ent in candidates:
-                    # if (ent not in self.e1rel_e2[triple[0]+triple[1]]) and ent != true:
-                        query_pairs.append(
-                            [symbol2id[triple[0]], symbol2id[ent]])
-                        if meta:
-                            query_left.append(self.ent2id[triple[0]])
-                            query_right.append(self.ent2id[ent])
+                    query_pairs.append(
+                        [symbol2id[triple[0]], symbol2id[ent]])
+                    if meta:
+                        query_left.append(self.ent2id[triple[0]])
+                        # print(triple[0])
+                        query_right.append(self.ent2id[ent])
 
                 query = Variable(torch.LongTensor(query_pairs)).cuda()
 
@@ -213,7 +295,6 @@ class Application(object):
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
                 print("Rank of ground truth: ",sort.index(candidates.index(true)))
-
 
                 rel = self.id2symbol[query_pairs[sort[0]][0]]
                 top_e = self.id2symbol[query_pairs[sort[0]][1]]
@@ -233,26 +314,26 @@ class Application(object):
                 for rel, e2 in neighbors_of_top:
                     print(top_e, self.id2symbol[rel], self.id2symbol[e2])
 
-                path_k=600
-                path_depth=2
-                print("\nFinding paths for k={} and depth={}".format(path_k,path_depth))
-                e2=triple[0]
-                e1=triple[2]
-                paths=self.graph.pair_feature([e1,e2],k=path_k,depth=path_depth)
+                path_k = 600
+                path_depth = 2
+                print("\nFinding paths for k={} and depth={}".format(
+                    path_k, path_depth))
+                e2 = triple[0]
+                e1 = triple[2]
+                paths = self.graph.pair_feature(
+                    [e1, e2], k=path_k, depth=path_depth)
                 # e1=top_e
                 # e2=self.id2symbol[neighbors_of_top[0][1]]
-                # paths=self.graph.pair_feature([e2,e1],k=path_k,depth=path_depth)                
-                print("\nFound {} paths between {} & {}".format(len(paths),e1,e2))
+                # paths=self.graph.pair_feature([e2,e1],k=path_k,depth=path_depth)
+                print("\nFound {} paths between {} & {}".format(len(paths), e1, e2))
                 for path in paths:
                     print("*********")
                     print(path)
 
-
-
-    def run_(self, mode):
+    def run_(self):
         self.load()
         logging.info('Pre-trained model loaded')
-        self.run(mode, meta=self.meta)
+        self.run(mode=self.app_mode, meta=self.meta)
 
 
 def read_args():
@@ -285,8 +366,10 @@ def read_args():
     # parser.add_argument("--embed_model", default='ComplEx', type=str)
 
     parser.add_argument("--query_file", default='queries/query.json', type=str)
-    parser.add_argument("--app_mode", default=1, type=int, choices=[1, 2])
-
+    parser.add_argument("--app_mode", default='new_rel',
+                        type=str, choices=['new_rel', 'old_rel'])
+    parser.add_argument("--add_extra_neighbours", action='store_true')
+    parser.add_argument("--max_extra_neighbor_depth", type=int, default=100)
     args = parser.parse_args()
     args.save_path = 'models/' + args.prefix
 
@@ -323,4 +406,4 @@ if __name__ == '__main__':
     torch.cuda.manual_seed_all(args.seed)
 
     app = Application(args)
-    app.run_(mode='old_rel')
+    app.run_()

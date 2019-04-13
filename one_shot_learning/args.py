@@ -29,6 +29,9 @@ def read_options():
 
     #added arguments
     parser.add_argument("--save_results", action='store_true')
+    parser.add_argument("--no_continue_training", action='store_true')
+    parser.add_argument("--add_extra_neighbours", action='store_true')
+    parser.add_argument("--max_extra_neighbor_depth", type=int, default=100)
 
     args = parser.parse_args()
     # args.embed_path = args.dataset + '/symbol2vec.vec'
