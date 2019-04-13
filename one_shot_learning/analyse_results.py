@@ -21,7 +21,7 @@ def best_predictions(results, cutoff=2):
         triple_stats=results[support_triples]
         for head in triple_stats:
             tail,rank,top5=triple_stats[head]
-            if(rank<=2):
+            if(rank<=cutoff):
                 print("**********")
                 print("SUPPORT TRIPLES: {}".format(support_triples))
                 print("HEAD: {}, TAIL: {}, RANK: {} ".format(head,tail,rank))
@@ -101,5 +101,5 @@ if __name__=='__main__':
     #     results=translate(results)
     
     graph=Graph(dataset)
-    best_predictions(results)
+    best_predictions(results,cutoff=5)
     # degree_vs_mrr(graph,results)    

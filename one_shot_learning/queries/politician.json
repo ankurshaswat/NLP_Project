@@ -1,0 +1,14 @@
+{
+    "concept:politicianusendorsespoliticianus": [
+        [
+            "concept:politicianus:andrew_jackson",
+            "concept:politicianusendorsespoliticianus",
+            "concept:politicianus:clinton"
+        ],
+        [
+            "concept:politicianus:michael_moore",
+            "concept:politicianusendorsespoliticianus",
+            "concept:politicianus:clinton"
+        ]
+    ]
+}

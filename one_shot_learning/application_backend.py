@@ -150,15 +150,18 @@ class Application(object):
                 #     candidates.append(self.id2symbol[index])
 
                 candidates += rel2candidates[query_]
-                candidates=candidates[:4000]
-                print("\n\nQUERY: {}".format(query_))
-                print("\n\n CANDIDATES: ",candidates)
+                # candidates=candidates[:2000]
 
                 while(len(candidates) < 500):
                     sample = random.randint(
                         self.ent_sym_range[0], self.ent_sym_range[1])
                     if(self.id2symbol[sample] not in candidates):
                         candidates.append(self.id2symbol[sample])
+
+
+            print("\n\nQUERY: {}".format(query_))
+            print("\n\n CANDIDATES (first 10): ",candidates[:10])
+            # print(candidates.index('concept:sport:baseball'))
 
             support_triples = tasks[query_][:few]
             support_pairs = [[symbol2id[triple[0]], symbol2id[triple[2]]]
@@ -174,12 +177,12 @@ class Application(object):
             support = Variable(torch.LongTensor(support_pairs)).cuda()
 
             for triple in tasks[query_][few:]:
-
                 print("\nExisting Connecntions of query head")
                 neighbors_of_top = self.e1_rele2[triple[0]]
                 for rel, e2 in neighbors_of_top:
                     print(triple[0], self.id2symbol[rel], self.id2symbol[e2])
 
+                true = triple[2]
                 query_pairs = []
 
                 if meta:
@@ -187,11 +190,12 @@ class Application(object):
                     query_right = []
 
                 for ent in candidates:
-                    query_pairs.append(
-                        [symbol2id[triple[0]], symbol2id[ent]])
-                    if meta:
-                        query_left.append(self.ent2id[triple[0]])
-                        query_right.append(self.ent2id[ent])
+                    # if (ent not in self.e1rel_e2[triple[0]+triple[1]]) and ent != true:
+                        query_pairs.append(
+                            [symbol2id[triple[0]], symbol2id[ent]])
+                        if meta:
+                            query_left.append(self.ent2id[triple[0]])
+                            query_right.append(self.ent2id[ent])
 
                 query = Variable(torch.LongTensor(query_pairs)).cuda()
 
@@ -208,7 +212,7 @@ class Application(object):
 
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
-
+                print("Rank of ground truth: ",sort.index(candidates.index(true)))
 
 
                 rel = self.id2symbol[query_pairs[sort[0]][0]]
@@ -319,4 +323,4 @@ if __name__ == '__main__':
     torch.cuda.manual_seed_all(args.seed)
 
     app = Application(args)
-    app.run_(mode='new_rel')
+    app.run_(mode='old_rel')

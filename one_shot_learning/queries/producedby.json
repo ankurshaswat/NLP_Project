@@ -1,0 +1,14 @@
+{
+    "concept:producedby": [
+        [
+            "concept:automobilemodel:windstar",
+            "concept:producedby",
+            "concept:company:ford001"
+        ],
+        [
+            "concept:automobilemodel:e_150_econoline",
+            "concept:producedby",
+            "concept:company:ford"
+        ]
+    ]
+}
