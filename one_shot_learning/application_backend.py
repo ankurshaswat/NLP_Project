@@ -174,7 +174,7 @@ class Application(object):
                 
                 depth = 0
                 for j in range(self.max_neighbor):
-                    depth += 1
+                    # depth += 1
 
                     ent = self.id2symbol[right_connections[i][j][1]]
                     entId = self.ent2id[ent]
