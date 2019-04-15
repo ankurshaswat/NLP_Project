@@ -24,6 +24,8 @@ class Trainer(object):
         for k, v in vars(arg).items():
             setattr(self, k, v)
 
+        self.test = (self.app_mode == 'test')
+
         self.meta = not self.no_meta
 
         if self.random_embed:
@@ -583,6 +585,132 @@ class Trainer(object):
         self.eval(mode='dev', meta=self.meta, save_results=self.save_results)
         self.eval(mode='test', meta=self.meta, save_results=self.save_results)
 
+    def run(self, mode='new_rel', meta=False):
+        self.matcher.eval()
+
+        symbol2id = self.symbol2id
+        few = self.few
+
+        logging.info('EVALUATING ON QUERY DATA')
+        tasks = json.load(open(self.query_file))
+
+        rel2candidates = self.rel2candidates
+
+        for query_ in tasks.keys():
+
+            if (mode == 'query_old_rel'):
+                candidates = rel2candidates[query_]
+            elif(mode == 'query_new_rel'):
+                candidates = []
+                # for index in range(self.ent_sym_range[0],self.ent_sym_range[1]):
+                #     candidates.append(self.id2symbol[index])
+
+                candidates += rel2candidates[query_]
+                print("\n\nQUERY: {}".format(query_))
+                print("\n\n CANDIDATES: ", candidates)
+
+                while(len(candidates) < 500):
+                    sample = random.randint(
+                        self.ent_sym_range[0], self.ent_sym_range[1])
+                    if(self.id2symbol[sample] not in candidates):
+                        candidates.append(self.id2symbol[sample])
+
+
+            print("\n\nQUERY: {}".format(query_))
+            print("\n\n CANDIDATES (first 10): ",candidates[:10])
+            # print(candidates.index('concept:sport:baseball'))
+
+            support_triples = tasks[query_][:few]
+            support_pairs = [[symbol2id[triple[0]], symbol2id[triple[2]]]
+                             for triple in support_triples]
+
+            if meta:
+                support_left = [self.ent2id[triple[0]]
+                                for triple in support_triples]
+                support_right = [self.ent2id[triple[2]]
+                                 for triple in support_triples]
+                support_meta = self.get_meta(support_left, support_right)
+
+            support = Variable(torch.LongTensor(support_pairs)).cuda()
+
+            for triple in tasks[query_][few:]:
+
+                print("\nExisting Connections of query head")
+                neighbors_of_top = self.e1_rele2[triple[0]]
+                for rel, e2 in neighbors_of_top:
+                    print(triple[0], self.id2symbol[rel], self.id2symbol[e2])
+
+                true = triple[2]
+                query_pairs = []
+
+                if meta:
+                    query_left = []
+                    query_right = []
+
+                for ent in candidates:
+                    query_pairs.append(
+                        [symbol2id[triple[0]], symbol2id[ent]])
+                    if meta:
+                        query_left.append(self.ent2id[triple[0]])
+                        # print(triple[0])
+                        query_right.append(self.ent2id[ent])
+
+                query = Variable(torch.LongTensor(query_pairs)).cuda()
+
+                if meta:
+                    query_meta = self.get_meta(query_left, query_right)
+                    scores = self.matcher(
+                        query, support, query_meta, support_meta)
+                    scores.detach()
+                    scores = scores.data
+                else:
+                    scores = self.matcher(query, support)
+                    scores.detach()
+                    scores = scores.data
+
+                scores = scores.cpu().numpy()
+                sort = list(np.argsort(scores))[::-1]
+                print("Rank of ground truth: ",sort.index(candidates.index(true)))
+
+                rel = self.id2symbol[query_pairs[sort[0]][0]]
+                top_e = self.id2symbol[query_pairs[sort[0]][1]]
+
+                print("\nTop 10 Results")
+                for target_rank in range(10):
+                    index = sort[target_rank]
+                    query_pair = query_pairs[index]
+                    print('Rank', target_rank+1, ': Head=', self.id2symbol[query_pair[0]][8:], 'Relation=', query_[
+                          8:], 'Tail=', self.id2symbol[query_pair[1]][8:])
+
+                    # if(target_rank==2):
+                        # top_e=query_pair[1]
+
+                print("\nExisting Connections of top result")
+                neighbors_of_top = self.e1_rele2[top_e]
+                for rel, e2 in neighbors_of_top:
+                    print(top_e, self.id2symbol[rel], self.id2symbol[e2])
+
+                path_k = 600
+                path_depth = 2
+                print("\nFinding paths for k={} and depth={}".format(
+                    path_k, path_depth))
+                e2 = triple[0]
+                e1 = triple[2]
+                paths = self.graph.pair_feature(
+                    [e1, e2], k=path_k, depth=path_depth)
+                # e1=top_e
+                # e2=self.id2symbol[neighbors_of_top[0][1]]
+                # paths=self.graph.pair_feature([e2,e1],k=path_k,depth=path_depth)
+                print("\nFound {} paths between {} & {}".format(len(paths), e1, e2))
+                for path in paths:
+                    print("*********")
+                    print(path)
+
+    def run_(self):
+        self.load()
+        logging.info('Pre-trained model loaded')
+        self.run(mode=self.app_mode, meta=self.meta)
+
 
 if __name__ == '__main__':
     args = read_options()
@@ -592,7 +720,7 @@ if __name__ == '__main__':
     formatter = logging.Formatter(
         '%(asctime)s %(levelname)s: - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-    fh = logging.FileHandler('./logs_/log-{}.txt'.format(args.prefix))
+    fh = logging.FileHandler('./logs_/log-{}.txt'.format(args.prefix + datetime.datetime.now()))
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
     ch = logging.StreamHandler()
@@ -609,8 +737,11 @@ if __name__ == '__main__':
     torch.cuda.manual_seed_all(args.seed)
 
     trainer = Trainer(args)
-    if args.test:
+    if args.app_mode == 'test':
         trainer.test_()
-    else:
+    elif args.app_mode == 'train':
         trainer.train()
+    elif args.app_mode == 'query_new_rel' or args.app_mode == 'query_old_rel':
+        trainer.run_()
+
     # trainer.eval()
