@@ -1,5 +1,6 @@
 import argparse
 
+
 def read_options():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="NELL", type=str)
@@ -20,18 +21,22 @@ def read_options():
     parser.add_argument("--aggregate", default='max', type=str)
     parser.add_argument("--max_neighbor", default=50, type=int)
     parser.add_argument("--no_meta", action='store_true')
-    parser.add_argument("--test", action='store_true')
+    # parser.add_argument("--test", action='store_true')
     parser.add_argument("--grad_clip", default=5.0, type=float)
     parser.add_argument("--weight_decay", default=0.0, type=float)
     parser.add_argument("--embed_model", default='ComplEx', type=str)
     parser.add_argument("--prefix", default='intial', type=str)
     parser.add_argument("--seed", default='19940419', type=int)
 
-    #added arguments
+    # added arguments
+    parser.add_argument("--query_file", default='queries/query.json', type=str)
     parser.add_argument("--save_results", action='store_true')
     parser.add_argument("--no_continue_training", action='store_true')
     parser.add_argument("--add_extra_neighbours", action='store_true')
     parser.add_argument("--max_extra_neighbor_depth", type=int, default=1)
+
+    parser.add_argument("--app_mode", default='train',
+                        type=str, choices=['test', 'train', 'query_new_rel', 'query_old_rel'])
 
     args = parser.parse_args()
     # args.embed_path = args.dataset + '/symbol2vec.vec'
@@ -43,4 +48,3 @@ def read_options():
     print("----------------------------")
 
     return args
-
