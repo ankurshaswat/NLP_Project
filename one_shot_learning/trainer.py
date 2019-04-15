@@ -26,6 +26,7 @@ class Trainer(object):
             setattr(self, k, v)
 
         self.test = (self.app_mode == 'test')
+        self.add_extra_neighbours = (self.max_extra_neighbor_depth > 0)
 
         self.meta = not self.no_meta
 
@@ -231,6 +232,63 @@ class Trainer(object):
                 self.connections[id_, idx, 0] = _[0]
                 self.connections[id_, idx, 1] = _[1]
 
+        # Creating extended connections in pre processing
+        if self.add_extra_neighbours:
+            logging.info('BUILDING EXTENDED NEIGHBOUR CONNECTION MATRIX')
+
+            self.connections_extended = (np.ones((self.num_ents, max_, 2))
+                                         * self.pad_id).astype(int)
+            self.e1_degrees_extended = defaultdict(int)
+
+            for ent, id_ in tqdm(self.ent2id.items()):
+
+                for i in range(self.e1_degrees[id_]):
+                    self.connections_extended[id_, i,
+                                              0] = self.connections[id_, i, 0]
+                    self.connections_extended[id_, i,
+                                              1] = self.connections[id_, i, 1]
+
+                self.e1_degrees_extended[id_] = self.e1_degrees[id_]
+
+                pos_2_add = self.e1_degrees[id_]
+                degree_threshold = self.e1_degrees[id_]
+
+                if pos_2_add >= max_:
+                    continue
+
+                depth = 0
+                for i in range(max_):
+
+                    neigbour_ent = self.connections_extended[id_, i, 1]
+
+                    neigbour_ent = self.ent2id[self.id2symbol[neigbour_ent]]
+
+                    new_connections = self.connections[neigbour_ent, :, :]
+
+                    for j in range(self.e1_degrees[neigbour_ent]):
+                        self.connections_extended[id_,
+                                                  pos_2_add, :] = new_connections[j, :]
+
+                        pos_2_add += 1
+                        self.e1_degrees_extended[id_] += 1
+
+                        if pos_2_add >= max_:
+                            break
+
+                    if i == degree_threshold-1:
+                        depth += 1
+                        degree_threshold = self.e1_degrees_extended[id_]
+
+                    if (depth >= self.max_extra_neighbor_depth) or pos_2_add >= max_:
+                        break
+
+        # print(self.e1_degrees[0])
+        # for x in self.connections[0]:
+        #     print(self.id2symbol[x[0]],self.id2symbol[x[1]])
+        # print(self.e1_degrees_extended[0])
+        # for x in self.connections_extended[0]:
+        #     print(self.id2symbol[x[0]],self.id2symbol[x[1]])
+
         # json.dump(degrees, open(self.dataset + '/degrees', 'w'))
         # assert 1==2
 
@@ -246,88 +304,15 @@ class Trainer(object):
 
     def get_meta(self, left, right):
         if self.add_extra_neighbours:
-            # Hello
-
-            left_connections = [self.connections[_, :, :] for _ in left]
-            left_degrees = [self.e1_degrees[_] for _ in left]
-
-            for i in range(len(left)):
-                # for i in range(1):
-                pos_to_add = left_degrees[i]
-                degree_threshold = left_degrees[i]
-
-                if pos_to_add >= self.max_neighbor:
-                    break
-
-                depth = 0
-                for j in range(self.max_neighbor):
-                    # depth += 1
-
-                    ent = self.id2symbol[left_connections[i][j][1]]
-                    entId = self.ent2id[ent]
-
-                    connections = self.connections[entId, :, :]
-                    degree = self.e1_degrees[entId]
-                    # print(left_connections[0], left_degrees[0])
-                    # print(connections, degree)
-                    for k in range(degree):
-                        left_connections[i][pos_to_add] = connections[k]
-                        # print(self.id2symbol[left_connections[i][j][0]], self.id2symbol[left_connections[i]
-                        # [j][1]], self.id2symbol[connections[k][0]], self.id2symbol[connections[k][1]])
-                        pos_to_add += 1
-                        left_degrees[i] += 1
-                        if pos_to_add >= self.max_neighbor:
-                            break
-
-                    if j == degree_threshold-1:
-                        depth += 1
-                        degree_threshold = left_degrees[i]
-
-                    if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
-                        break
-
-            right_connections = [self.connections[_, :, :] for _ in right]
-            right_degrees = [self.e1_degrees[_] for _ in right]
-
-            for i in range(len(right)):
-                pos_to_add = right_degrees[i]
-                degree_threshold = right_degrees[i]
-
-                if pos_to_add >= self.max_neighbor:
-                    break
-
-                depth = 0
-                for j in range(self.max_neighbor):
-                    # depth += 1
-
-                    ent = self.id2symbol[right_connections[i][j][1]]
-                    entId = self.ent2id[ent]
-
-                    connections = self.connections[entId, :, :]
-                    degree = self.e1_degrees[entId]
-                    for k in range(degree):
-                        right_connections[i][pos_to_add] = connections[k]
-                        # print(connections[k])
-                        pos_to_add += 1
-                        right_degrees[i] += 1
-                        if pos_to_add >= self.max_neighbor:
-                            break
-
-                    if j == degree_threshold-1:
-                        depth += 1
-                        degree_threshold = right_degrees[i]
-
-                    if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
-                        break
-
-            left_connections_new = Variable(torch.LongTensor(
-                np.stack(left_connections, axis=0))).cuda()
-            left_degrees_new = Variable(torch.FloatTensor(
-                np.stack(left_degrees, axis=0))).cuda()
-            right_connections_new = Variable(torch.LongTensor(
-                np.stack(left_connections, axis=0))).cuda()
-            right_degrees_new = Variable(torch.FloatTensor(
-                np.stack(left_degrees, axis=0))).cuda()
+          
+            left_connections = Variable(torch.LongTensor(
+                np.stack([self.connections_extended[_, :, :] for _ in left], axis=0))).cuda()
+            left_degrees = Variable(torch.FloatTensor(
+                [self.e1_degrees_extended[_] for _ in left])).cuda()
+            right_connections = Variable(torch.LongTensor(
+                np.stack([self.connections_extended[_, :, :] for _ in right], axis=0))).cuda()
+            right_degrees = Variable(torch.FloatTensor(
+                [self.e1_degrees_extended[_] for _ in right])).cuda()
 
         else:
 
@@ -339,20 +324,8 @@ class Trainer(object):
                 np.stack([self.connections[_, :, :] for _ in right], axis=0))).cuda()
             right_degrees = Variable(torch.FloatTensor(
                 [self.e1_degrees[_] for _ in right])).cuda()
-            return (left_connections, left_degrees, right_connections, right_degrees)
 
-        return (left_connections_new, left_degrees_new, right_connections_new, right_degrees_new)
-
-    # def get_meta(self, left, right):
-    #     left_connections = Variable(torch.LongTensor(
-    #         np.stack([self.connections[_, :, :] for _ in left], axis=0))).cuda()
-    #     left_degrees = Variable(torch.FloatTensor(
-    #         [self.e1_degrees[_] for _ in left])).cuda()
-    #     right_connections = Variable(torch.LongTensor(
-    #         np.stack([self.connections[_, :, :] for _ in right], axis=0))).cuda()
-    #     right_degrees = Variable(torch.FloatTensor(
-    #         [self.e1_degrees[_] for _ in right])).cuda()
-    #     return (left_connections, left_degrees, right_connections, right_degrees)
+        return (left_connections, left_degrees, right_connections, right_degrees)
 
     def train(self):
         if not self.no_continue_training:
@@ -525,6 +498,7 @@ class Trainer(object):
                 sort = list(np.argsort(scores))[::-1]
                 rank = sort.index(0) + 1
 
+                # print(rank)
                 # for i in sort[:5]:
                 # print(query_pairs[i])
                 # print(id2ent)
