@@ -12,12 +12,7 @@ class EmbedMatcher(nn.Module):
     """
     Matching metric based on KB Embeddings
     """
-<<<<<<< HEAD
     def __init__(self, embed_dim, num_symbols, use_pretrain=True, embed=None, dropout=0.2, batch_size=64, process_steps=4, finetune=False, aggregate='max',attend_neighbours=False):
-=======
-
-    def __init__(self, embed_dim, num_symbols, use_pretrain=True, embed=None, dropout=0.2, batch_size=64, process_steps=4, finetune=False, aggregate='max'):
->>>>>>> 437ffa5165f4d9a986a5e039250864b091d75e9e
         super(EmbedMatcher, self).__init__()
         self.embed_dim = embed_dim
         self.pad_idx = num_symbols
