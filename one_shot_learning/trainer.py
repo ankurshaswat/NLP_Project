@@ -469,7 +469,7 @@ class Trainer(object):
             candidates = rel2candidates[query_]
 
             #for low memory
-            candidates=candidates[:2000]
+            # candidates=candidates[:2000]
 
             support_triples = test_tasks[query_][:few]
             support_pairs = [[symbol2id[triple[0]], symbol2id[triple[2]]]
