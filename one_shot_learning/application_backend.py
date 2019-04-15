@@ -160,7 +160,11 @@ class Application(object):
 
                     if (depth >= self.max_extra_neighbor_depth) or (pos_to_add >= self.max_neighbor):
                         break
-                        
+
+            print("LEFT CONNECTIONS:")
+            for i in left_connections[0]:
+                print("{} -- {}".format(self.id2symbol[i[0]] , self.id2symbol[i[1]] ))
+
             right_connections = [self.connections[_, :, :] for _ in right]
             right_degrees = [self.e1_degrees[_] for _ in right]
 
@@ -253,6 +257,7 @@ class Application(object):
             print("\n\nQUERY: {}".format(query_))
             print("\n\n CANDIDATES (first 10): ",candidates[:10])
             # print(candidates.index('concept:sport:baseball'))
+            # print("INDEX: ",candidates.index('concept:weapon:perazzi_shotguns'))
 
             support_triples = tasks[query_][:few]
             support_pairs = [[symbol2id[triple[0]], symbol2id[triple[2]]]

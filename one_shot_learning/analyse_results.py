@@ -26,24 +26,52 @@ def best_predictions(results, cutoff=2):
                 print("SUPPORT TRIPLES: {}".format(support_triples))
                 print("HEAD: {}, TAIL: {}, RANK: {} ".format(head,tail,rank))
 
-def degree_vs_ranks(graph,results):
+def degree_vs_ranks(graph,results,rank_cutoff=5,degree_threshold=50):
 
+    relation_wise_stats={}
     for support_triples in results:
         triple_stats=results[support_triples]
+
+        print(support_triples)
+        
+        sup_trip=ast.literal_eval(support_triples)
+        # print(sup_trip)
+        rel=sup_trip[0][1]
+        # print("RELATION: {}".format(rel))
+
+        if(rel not in relation_wise_stats):
+            relation_wise_stats[rel]={}
+            relation_wise_stats[rel]['low_degree_entities']=([],[])
+            relation_wise_stats[rel]['total_entities']=0
+            relation_wise_stats[rel]['deg_rank']=[]
+
 
         head_degree_ranks=[]
         tail_degree_ranks=[]
 
+        scarce_heads=[]
+        scarce_tails=[]
 
         for head in triple_stats:
             tail,rank,top5=triple_stats[head]
-            if(rank>5):
-                 continue
+                    
             head_deg=len(graph.connections[head])+len(graph._connections[head])
             tail_deg=len(graph.connections[tail])+len(graph._connections[tail])
-            head_degree_ranks.append((head_deg,rank))
+            head_degree_ranks.append((head_deg+tail_deg,rank))
             tail_degree_ranks.append((tail_deg,rank))
 
+
+
+            if(rank<=rank_cutoff):
+                if(head_deg<degree_threshold):
+                    scarce_heads.append(head)
+                if(tail_deg<degree_threshold):                
+                    scarce_tails.append(tail)
+                
+                relation_wise_stats[rel]['total_entities']+=1
+
+
+        relation_wise_stats[rel]['deg_rank']+=head_degree_ranks
 
         rank_count={}
         for h,r in head_degree_ranks:
@@ -56,19 +84,53 @@ def degree_vs_ranks(graph,results):
         if(len(rank_count.keys())<5):
              continue
 
+        h_c,t_c=relation_wise_stats[rel]['low_degree_entities']
+        h_c+=scarce_heads
+        t_c+=scarce_tails
+
+        # print("\n")
+        print(len(h_c),len(t_c))
+    
+        # x,y=[],[]
+        # for i in sorted(rank_count.keys()):
+        #     # print(i)
+        #     # print(ranks[i])
+        #     x.append(i)
+        #     y.append(rank_count[i])
+        # plt.scatter(x,y)
+        # plt.plot(x,y)
+        # plt.show()
+
+    for rel in relation_wise_stats:
+        print("\nStats for relation {}".format(rel))
+        h_c,t_c=relation_wise_stats[rel]['low_degree_entities']
+        tot=relation_wise_stats[rel]['total_entities']
+        print("Total hits@{}: {}".format(rank_cutoff,tot))
+
+        print("h_c: {}, t_c: {}".format(len(h_c)/(tot+1) , len(t_c)/(tot+1) ))
 
         x,y=[],[]
-        for i in sorted(rank_count.keys()):
+        rank_deg_stats=relation_wise_stats[rel]['deg_rank']
+        for deg,r in rank_deg_stats :
             # print(i)
             # print(ranks[i])
-            x.append(i)
-            y.append(rank_count[i])
-        # plt.scatter(x,y)
-        plt.plot(x,y)
+            # print(r,deg)
+
+
+            # if(r>50):
+                # continue
+            x.append(r)
+            # y.append(deg)
+            y.append(min(deg,2*degree_threshold) )
+
+        plt.xlabel('Rank')
+        plt.ylabel('Degree')        
+        plt.title('Relation: {}'.format(rel))
+        plt.scatter(x,y)
         plt.show()
+        plt.clf()
 
-
-
+        
 
 # def translate(results):
 #     results_copy={}
@@ -97,9 +159,10 @@ if __name__=='__main__':
     with open(results_file, "rb") as input_file:
         results = pickle.load(input_file)
 
+    # print(results)
     # if(dataset=='Wiki'):
     #     results=translate(results)
     
     graph=Graph(dataset)
-    best_predictions(results,cutoff=5)
-    # degree_vs_mrr(graph,results)    
+    # best_predictions(results,cutoff=5)
+    degree_vs_ranks(graph,results)    
