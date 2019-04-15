@@ -26,6 +26,12 @@ class Trainer(object):
         for k, v in vars(arg).items():
             setattr(self, k, v)
 
+        if self.app_mode == 'train':
+
+            with open('models/'+self.prefix+'_params.json', 'w') as outfile:
+                json.dump(vars(arg), outfile)
+                # print(arg)
+
         self.test = (self.app_mode == 'test')
         self.add_extra_neighbours = (self.max_extra_neighbor_depth > 0)
 
