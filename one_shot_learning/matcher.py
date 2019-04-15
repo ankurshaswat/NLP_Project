@@ -7,15 +7,18 @@ import torch.nn.init as init
 from modules import *
 from torch.autograd import Variable
 
+
 class EmbedMatcher(nn.Module):
     """
     Matching metric based on KB Embeddings
     """
+
     def __init__(self, embed_dim, num_symbols, use_pretrain=True, embed=None, dropout=0.2, batch_size=64, process_steps=4, finetune=False, aggregate='max'):
         super(EmbedMatcher, self).__init__()
         self.embed_dim = embed_dim
         self.pad_idx = num_symbols
-        self.symbol_emb = nn.Embedding(num_symbols + 1, embed_dim, padding_idx=num_symbols)
+        self.symbol_emb = nn.Embedding(
+            num_symbols + 1, embed_dim, padding_idx=num_symbols)
         self.aggregate = aggregate
         self.num_symbols = num_symbols
 
@@ -45,83 +48,135 @@ class EmbedMatcher(nn.Module):
         num_neighbors: (batch,)
         '''
         num_neighbors = num_neighbors.unsqueeze(1)
-        relations = connections[:,:,0].squeeze(-1)
-        entities = connections[:,:,1].squeeze(-1)
-        rel_embeds = self.dropout(self.symbol_emb(relations)) # (batch, 200, embed_dim)
-        ent_embeds = self.dropout(self.symbol_emb(entities)) # (batch, 200, embed_dim)
+        relations = connections[:, :, 0].squeeze(-1)
+        entities = connections[:, :, 1].squeeze(-1)
+        rel_embeds = self.dropout(self.symbol_emb(
+            relations))  # (batch, 200, embed_dim)
+        ent_embeds = self.dropout(self.symbol_emb(
+            entities))  # (batch, 200, embed_dim)
 
-        concat_embeds = torch.cat((rel_embeds, ent_embeds), dim=-1) # (batch, 200, 2*embed_dim)
+        # (batch, 200, 2*embed_dim)
+        concat_embeds = torch.cat((rel_embeds, ent_embeds), dim=-1)
 
         out = self.gcn_w(concat_embeds)
 
-        out = torch.sum(out, dim=1) # (batch, embed_dim)
+        out = torch.sum(out, dim=1)  # (batch, embed_dim)
         out = out / num_neighbors
         return out.tanh()
 
-    def forward(self, query, support, query_meta=None, support_meta=None):
+    def forward(self, query, support, query_meta=None, support_meta=None, neighbour_encode_only=False):
         '''
         query: (batch_size, 2)
         support: (few, 2)
         return: (batch_size, )
         '''
 
+        if neighbour_encode_only:
+            # print('In Neigbour encoder only')
+            return self.forward_neighbour_encoder(query, support, query_meta, support_meta)
+        # print('Not In Neigbour encoder only')
+
+
         query_left_connections, query_left_degrees, query_right_connections, query_right_degrees = query_meta
         support_left_connections, support_left_degrees, support_right_connections, support_right_degrees = support_meta
 
-        query_left = self.neighbor_encoder(query_left_connections, query_left_degrees)
-        query_right = self.neighbor_encoder(query_right_connections, query_right_degrees)
+        query_left = self.neighbor_encoder(
+            query_left_connections, query_left_degrees)
+        query_right = self.neighbor_encoder(
+            query_right_connections, query_right_degrees)
 
-        support_left = self.neighbor_encoder(support_left_connections, support_left_degrees)
-        support_right = self.neighbor_encoder(support_right_connections, support_right_degrees)
+        support_left = self.neighbor_encoder(
+            support_left_connections, support_left_degrees)
+        support_right = self.neighbor_encoder(
+            support_right_connections, support_right_degrees)
 
-        query_neighbor = torch.cat((query_left, query_right), dim=-1) # tanh
-        support_neighbor = torch.cat((support_left, support_right), dim=-1) # tanh
+        query_neighbor = torch.cat((query_left, query_right), dim=-1)  # tanh
+        support_neighbor = torch.cat(
+            (support_left, support_right), dim=-1)  # tanh
 
         support = support_neighbor
         query = query_neighbor
 
-        support_g = self.support_encoder(support) # 1 * 100
+        support_g = self.support_encoder(support)  # 1 * 100
         query_g = self.support_encoder(query)
 
         support_g = torch.mean(support_g, dim=0, keepdim=True)
         # support_g = support
         # query_g = query
 
-        query_f = self.query_encoder(support_g, query_g) # 128 * 100
+        query_f = self.query_encoder(support_g, query_g)  # 128 * 100
 
         # cosine similarity
         matching_scores = torch.matmul(query_f, support_g.t()).squeeze()
 
         return matching_scores
 
+    def forward_neighbour_encoder(self, query, support, query_meta=None, support_meta=None):
+        '''
+        Function to do forward pass only till neighbour encoder
+        query: (batch_size, 2)
+        support: (few, 2)
+        return: (batch_size, )
+        '''
+        query_left_connections, query_left_degrees, query_right_connections, query_right_degrees = query_meta
+        support_left_connections, support_left_degrees, support_right_connections, support_right_degrees = support_meta
+
+        query_left = self.neighbor_encoder(
+            query_left_connections, query_left_degrees)
+        query_right = self.neighbor_encoder(
+            query_right_connections, query_right_degrees)
+
+        support_left = self.neighbor_encoder(
+            support_left_connections, support_left_degrees)
+        support_right = self.neighbor_encoder(
+            support_right_connections, support_right_degrees)
+
+        query_neighbor = torch.cat((query_left, query_right), dim=-1)  # tanh
+        support_neighbor = torch.cat(
+            (support_left, support_right), dim=-1)  # tanh
+
+        support = support_neighbor
+        query = query_neighbor
+
+        simple_matching_scores = torch.matmul(query, support.t()).squeeze()
+
+        return simple_matching_scores
+
     def forward_(self, query_meta, support_meta):
         query_left_connections, query_left_degrees, query_right_connections, query_right_degrees = query_meta
         support_left_connections, support_left_degrees, support_right_connections, support_right_degrees = support_meta
 
-        query_left = self.neighbor_encoder(query_left_connections, query_left_degrees)
-        query_right = self.neighbor_encoder(query_right_connections, query_right_degrees)
-        support_left = self.neighbor_encoder(support_left_connections, support_left_degrees)
-        support_right = self.neighbor_encoder(support_right_connections, support_right_degrees)
+        query_left = self.neighbor_encoder(
+            query_left_connections, query_left_degrees)
+        query_right = self.neighbor_encoder(
+            query_right_connections, query_right_degrees)
+        support_left = self.neighbor_encoder(
+            support_left_connections, support_left_degrees)
+        support_right = self.neighbor_encoder(
+            support_right_connections, support_right_degrees)
 
-        query = torch.cat((query_left, query_right), dim=-1) # tanh
-        support = torch.cat((support_left, support_right), dim=-1) # tanh
+        query = torch.cat((query_left, query_right), dim=-1)  # tanh
+        support = torch.cat((support_left, support_right), dim=-1)  # tanh
 
         support_expand = support.expand_as(query)
 
-        distances = F.sigmoid(self.siamese(torch.abs(support_expand - query))).squeeze()
+        distances = F.sigmoid(self.siamese(
+            torch.abs(support_expand - query))).squeeze()
         return distances
-
 
 
 class RescalMatcher(nn.Module):
     """
     Matching based on KB Embeddings
     """
+
     def __init__(self, embed_dim, num_ents, num_rels, use_pretrain=True, ent_embed=None, rel_matrices=None, dropout=0.1, attn_layers=1, n_head=4, batch_size=64, process_steps=4, finetune=False, aggregate='max'):
         super(RescalMatcher, self).__init__()
         self.embed_dim = embed_dim
-        self.ent_emb = nn.Embedding(num_ents + 1, embed_dim, padding_idx=num_ents)
-        self.rel_matrices = nn.Embedding(num_rels + 1, embed_dim * embed_dim, padding_idx=num_rels)
+        self.ent_emb = nn.Embedding(
+            num_ents + 1, embed_dim, padding_idx=num_ents)
+        self.rel_matrices = nn.Embedding(
+            num_rels + 1, embed_dim * embed_dim, padding_idx=num_rels)
 
         self.aggregate = aggregate
 
@@ -161,10 +216,12 @@ class RescalMatcher(nn.Module):
         num_neighbors: (batch,)
         '''
         num_neighbors = num_neighbors.unsqueeze(1)
-        relations = connections[:,:,0].squeeze(-1)
-        entities = connections[:,:,1].squeeze(-1)
-        rel_embeds = self.dropout(self.rel_matrices(relations)) # (batch, 200, embed_dim*embed_dim)
-        ent_embeds = self.dropout(self.ent_emb(entities)) # (batch, 200, embed_dim)
+        relations = connections[:, :, 0].squeeze(-1)
+        entities = connections[:, :, 1].squeeze(-1)
+        # (batch, 200, embed_dim*embed_dim)
+        rel_embeds = self.dropout(self.rel_matrices(relations))
+        ent_embeds = self.dropout(self.ent_emb(
+            entities))  # (batch, 200, embed_dim)
 
         batch_size = rel_embeds.size()[0]
         max_neighbors = rel_embeds.size()[1]
@@ -172,13 +229,14 @@ class RescalMatcher(nn.Module):
         ent_embeds = ent_embeds.view(-1, self.embed_dim).unsqueeze(2)
 
         # concat_embeds = torch.cat((rel_embeds, ent_embeds), dim=-1) # (batch, 200, 2*embed_dim)
-        concat_embeds = torch.bmm(rel_embeds, ent_embeds).squeeze().view(batch_size,max_neighbors,-1)
+        concat_embeds = torch.bmm(rel_embeds, ent_embeds).squeeze().view(
+            batch_size, max_neighbors, -1)
         # print concat_embeds.size()
 
         # concat_embeds = self.slf_neighbor(concat_embeds)
 
-        out = self.gcn_w(concat_embeds) + self.gcn_b # (batch, 200, embed_dim)
-        out = torch.sum(out, dim=1) # (batch, embed_dim)
+        out = self.gcn_w(concat_embeds) + self.gcn_b  # (batch, 200, embed_dim)
+        out = torch.sum(out, dim=1)  # (batch, embed_dim)
         out = out / num_neighbors
         # out = F.relu(out)
         out = F.tanh(out)
@@ -192,8 +250,10 @@ class RescalMatcher(nn.Module):
         return: (batch_size, )
         '''
         if query_meta == None:
-            support = self.dropout(self.symbol_emb(support)).view(-1, 2*self.embed_dim)
-            query = self.dropout(self.symbol_emb(query)).view(-1, 2*self.embed_dim)
+            support = self.dropout(self.symbol_emb(
+                support)).view(-1, 2*self.embed_dim)
+            query = self.dropout(self.symbol_emb(
+                query)).view(-1, 2*self.embed_dim)
             support = support.unsqueeze(0)
             support_g = self.support_encoder(support).squeeze(0)
             query_f = self.query_encoder(support_g, query)
@@ -206,26 +266,30 @@ class RescalMatcher(nn.Module):
                 query_scores = torch.sum(matching_scores, dim=1)
             return query_scores
 
-
         query_left_connections, query_left_degrees, query_right_connections, query_right_degrees = query_meta
         support_left_connections, support_left_degrees, support_right_connections, support_right_degrees = support_meta
 
-        query_left = self.neighbor_encoder(query_left_connections, query_left_degrees)
-        query_right = self.neighbor_encoder(query_right_connections, query_right_degrees)
+        query_left = self.neighbor_encoder(
+            query_left_connections, query_left_degrees)
+        query_right = self.neighbor_encoder(
+            query_right_connections, query_right_degrees)
 
-        support_left = self.neighbor_encoder(support_left_connections, support_left_degrees)
-        support_right = self.neighbor_encoder(support_right_connections, support_right_degrees)
+        support_left = self.neighbor_encoder(
+            support_left_connections, support_left_degrees)
+        support_right = self.neighbor_encoder(
+            support_right_connections, support_right_degrees)
 
-        query_neighbor = torch.cat((query_left, query_right), dim=-1) # tanh
-        support_neighbor = torch.cat((support_left, support_right), dim=-1) # tanh
+        query_neighbor = torch.cat((query_left, query_right), dim=-1)  # tanh
+        support_neighbor = torch.cat(
+            (support_left, support_right), dim=-1)  # tanh
 
         support = support_neighbor
         query = query_neighbor
 
-        support_g = self.support_encoder(support) # 1 * 100
+        support_g = self.support_encoder(support)  # 1 * 100
         query_g = self.support_encoder(query)
 
-        query_f = self.query_encoder(support_g, query_g) # 128 * 100
+        query_f = self.query_encoder(support_g, query_g)  # 128 * 100
 
         # cosine similarity
         matching_scores = torch.matmul(query_f, support_g.t()).squeeze()
@@ -244,24 +308,28 @@ class RescalMatcher(nn.Module):
         query_left_connections, query_left_degrees, query_right_connections, query_right_degrees = query_meta
         support_left_connections, support_left_degrees, support_right_connections, support_right_degrees = support_meta
 
-        query_left = self.neighbor_encoder(query_left_connections, query_left_degrees)
-        query_right = self.neighbor_encoder(query_right_connections, query_right_degrees)
-        support_left = self.neighbor_encoder(support_left_connections, support_left_degrees)
-        support_right = self.neighbor_encoder(support_right_connections, support_right_degrees)
+        query_left = self.neighbor_encoder(
+            query_left_connections, query_left_degrees)
+        query_right = self.neighbor_encoder(
+            query_right_connections, query_right_degrees)
+        support_left = self.neighbor_encoder(
+            support_left_connections, support_left_degrees)
+        support_right = self.neighbor_encoder(
+            support_right_connections, support_right_degrees)
 
-        query = torch.cat((query_left, query_right), dim=-1) # tanh
-        support = torch.cat((support_left, support_right), dim=-1) # tanh
+        query = torch.cat((query_left, query_right), dim=-1)  # tanh
+        support = torch.cat((support_left, support_right), dim=-1)  # tanh
 
         support_expand = support.expand_as(query)
 
-        distances = F.sigmoid(self.siamese(torch.abs(support_expand - query))).squeeze()
+        distances = F.sigmoid(self.siamese(
+            torch.abs(support_expand - query))).squeeze()
         return distances
+
 
 if __name__ == '__main__':
 
-    query = Variable(torch.ones(64,2).long()) * 100
-    support = Variable(torch.ones(40,2).long())
+    query = Variable(torch.ones(64, 2).long()) * 100
+    support = Variable(torch.ones(40, 2).long())
     matcher = EmbedMatcher(40, 200, use_pretrain=False)
     print(matcher(query, support).size())
-
-

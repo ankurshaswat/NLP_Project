@@ -34,9 +34,9 @@ def read_options():
     parser.add_argument("--no_continue_training", action='store_true')
     parser.add_argument("--add_extra_neighbours", action='store_true')
     parser.add_argument("--max_extra_neighbor_depth", type=int, default=1)
-
     parser.add_argument("--app_mode", default='train',
                         type=str, choices=['test', 'train', 'query_new_rel', 'query_old_rel'])
+    parser.add_argument("--fluctuate", action='store_true')
 
     args = parser.parse_args()
     # args.embed_path = args.dataset + '/symbol2vec.vec'

@@ -4,6 +4,7 @@ import numpy as np
 import pickle
 import torch
 import torch.nn.functional as F
+import datetime
 
 from collections import defaultdict
 from collections import deque
@@ -120,7 +121,6 @@ class Trainer(object):
         self.symbol2id = symbol_id
         self.symbol2vec = None
         self.id2symbol = id_symbol
-
 
     def load_embed(self):
 
@@ -246,13 +246,13 @@ class Trainer(object):
 
     def get_meta(self, left, right):
         if self.add_extra_neighbours:
-        # Hello
+            # Hello
 
             left_connections = [self.connections[_, :, :] for _ in left]
             left_degrees = [self.e1_degrees[_] for _ in left]
 
             for i in range(len(left)):
-            # for i in range(1):
+                # for i in range(1):
                 pos_to_add = left_degrees[i]
                 degree_threshold = left_degrees[i]
 
@@ -266,14 +266,14 @@ class Trainer(object):
                     ent = self.id2symbol[left_connections[i][j][1]]
                     entId = self.ent2id[ent]
 
-                    connections = self.connections[entId , :, :]
+                    connections = self.connections[entId, :, :]
                     degree = self.e1_degrees[entId]
                     # print(left_connections[0], left_degrees[0])
                     # print(connections, degree)
                     for k in range(degree):
                         left_connections[i][pos_to_add] = connections[k]
                         # print(self.id2symbol[left_connections[i][j][0]], self.id2symbol[left_connections[i]
-                                                                                        # [j][1]], self.id2symbol[connections[k][0]], self.id2symbol[connections[k][1]])
+                        # [j][1]], self.id2symbol[connections[k][0]], self.id2symbol[connections[k][1]])
                         pos_to_add += 1
                         left_degrees[i] += 1
                         if pos_to_add >= self.max_neighbor:
@@ -295,7 +295,7 @@ class Trainer(object):
 
                 if pos_to_add >= self.max_neighbor:
                     break
-                
+
                 depth = 0
                 for j in range(self.max_neighbor):
                     # depth += 1
@@ -303,7 +303,7 @@ class Trainer(object):
                     ent = self.id2symbol[right_connections[i][j][1]]
                     entId = self.ent2id[ent]
 
-                    connections = self.connections[entId , :, :]
+                    connections = self.connections[entId, :, :]
                     degree = self.e1_degrees[entId]
                     for k in range(degree):
                         right_connections[i][pos_to_add] = connections[k]
@@ -328,13 +328,13 @@ class Trainer(object):
                 np.stack(left_connections, axis=0))).cuda()
             right_degrees_new = Variable(torch.FloatTensor(
                 np.stack(left_degrees, axis=0))).cuda()
-        
+
         else:
 
             left_connections = Variable(torch.LongTensor(
-            np.stack([self.connections[_, :, :] for _ in left], axis=0))).cuda()
+                np.stack([self.connections[_, :, :] for _ in left], axis=0))).cuda()
             left_degrees = Variable(torch.FloatTensor(
-            [self.e1_degrees[_] for _ in left])).cuda()
+                [self.e1_degrees[_] for _ in left])).cuda()
             right_connections = Variable(torch.LongTensor(
                 np.stack([self.connections[_, :, :] for _ in right], axis=0))).cuda()
             right_degrees = Variable(torch.FloatTensor(
@@ -342,7 +342,6 @@ class Trainer(object):
             return (left_connections, left_degrees, right_connections, right_degrees)
 
         return (left_connections_new, left_degrees_new, right_connections_new, right_degrees_new)
-
 
     # def get_meta(self, left, right):
     #     left_connections = Variable(torch.LongTensor(
@@ -369,8 +368,11 @@ class Trainer(object):
 
         # if self.embed_model == 'RESCAL':
         #     self.symbol2id = self.ent2id
+        odd_iter = True
 
         for data in train_generate(self.dataset, self.batch_size, self.train_few, self.symbol2id, self.ent2id, self.e1rel_e2):
+
+            odd_iter = not odd_iter
 
             support, query, false, support_left, support_right, query_left, query_right, false_left, false_right = data
 
@@ -385,8 +387,10 @@ class Trainer(object):
 
             if self.no_meta:
                 # for ablation
-                query_scores = self.matcher(query, support)
-                false_scores = self.matcher(false, support)
+                query_scores = self.matcher(
+                    query, support, self.fluctuate and odd_iter)
+                false_scores = self.matcher(
+                    false, support, self.fluctuate and odd_iter)
             else:
                 query_scores = self.matcher(
                     query, support, query_meta, support_meta)
@@ -615,9 +619,8 @@ class Trainer(object):
                     if(self.id2symbol[sample] not in candidates):
                         candidates.append(self.id2symbol[sample])
 
-
             print("\n\nQUERY: {}".format(query_))
-            print("\n\n CANDIDATES (first 10): ",candidates[:10])
+            print("\n\n CANDIDATES (first 10): ", candidates[:10])
             # print(candidates.index('concept:sport:baseball'))
 
             support_triples = tasks[query_][:few]
@@ -670,7 +673,8 @@ class Trainer(object):
 
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
-                print("Rank of ground truth: ",sort.index(candidates.index(true)))
+                print("Rank of ground truth: ",
+                      sort.index(candidates.index(true)))
 
                 rel = self.id2symbol[query_pairs[sort[0]][0]]
                 top_e = self.id2symbol[query_pairs[sort[0]][1]]
@@ -683,7 +687,7 @@ class Trainer(object):
                           8:], 'Tail=', self.id2symbol[query_pair[1]][8:])
 
                     # if(target_rank==2):
-                        # top_e=query_pair[1]
+                    # top_e=query_pair[1]
 
                 print("\nExisting Connections of top result")
                 neighbors_of_top = self.e1_rele2[top_e]
@@ -720,7 +724,8 @@ if __name__ == '__main__':
     formatter = logging.Formatter(
         '%(asctime)s %(levelname)s: - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-    fh = logging.FileHandler('./logs_/log-{}.txt'.format(args.prefix + datetime.datetime.now()))
+    fh = logging.FileHandler(
+        './logs_/log-{}.txt'.format(args.prefix + str(datetime.datetime.now())))
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
     ch = logging.StreamHandler()
