@@ -16,6 +16,7 @@ from data_loader import *
 from matcher import *
 from tensorboardX import SummaryWriter
 
+import datetime
 
 class Trainer(object):
 
@@ -52,7 +53,8 @@ class Trainer(object):
         self.num_symbols = len(self.symbol2id.keys()) - 1  # one for 'PAD'
         self.pad_id = self.num_symbols
         self.matcher = EmbedMatcher(self.embed_dim, self.num_symbols, use_pretrain=self.use_pretrain, embed=self.symbol2vec, dropout=self.dropout,
-                                    batch_size=self.batch_size, process_steps=self.process_steps, finetune=self.fine_tune, aggregate=self.aggregate)
+                                    batch_size=self.batch_size, process_steps=self.process_steps, finetune=self.fine_tune, 
+                                    aggregate=self.aggregate,attend_neighbours=self.attend_neighbours)
         self.matcher.cuda()
 
         self.batch_nums = 0
@@ -449,6 +451,7 @@ class Trainer(object):
 
         rel2candidates = self.rel2candidates
 
+
         hits10 = []
         hits5 = []
         hits1 = []
@@ -464,6 +467,10 @@ class Trainer(object):
             mrr_ = []
 
             candidates = rel2candidates[query_]
+
+            #for low memory
+            candidates=candidates[:2000]
+
             support_triples = test_tasks[query_][:few]
             support_pairs = [[symbol2id[triple[0]], symbol2id[triple[2]]]
                              for triple in support_triples]
@@ -720,7 +727,7 @@ if __name__ == '__main__':
     formatter = logging.Formatter(
         '%(asctime)s %(levelname)s: - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-    fh = logging.FileHandler('./logs_/log-{}.txt'.format(args.prefix + datetime.datetime.now()))
+    fh = logging.FileHandler('./logs_/log-{}.txt'.format(args.prefix + str(datetime.datetime.now()) ))
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
     ch = logging.StreamHandler()
