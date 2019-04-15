@@ -61,7 +61,8 @@ class Trainer(object):
         if self.test:
             self.writer = None
         else:
-            self.writer = SummaryWriter('logs/' + self.prefix)
+            self.writer = SummaryWriter(
+                'logs/' + str(datetime.datetime.now()) + self.prefix)
 
         self.parameters = filter(
             lambda p: p.requires_grad, self.matcher.parameters())
@@ -304,7 +305,7 @@ class Trainer(object):
 
     def get_meta(self, left, right):
         if self.add_extra_neighbours:
-          
+
             left_connections = Variable(torch.LongTensor(
                 np.stack([self.connections_extended[_, :, :] for _ in left], axis=0))).cuda()
             left_degrees = Variable(torch.FloatTensor(
