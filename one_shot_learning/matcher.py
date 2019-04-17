@@ -12,7 +12,8 @@ class EmbedMatcher(nn.Module):
     """
     Matching metric based on KB Embeddings
     """
-    def __init__(self, embed_dim, num_symbols, use_pretrain=True, embed=None, dropout=0.2, batch_size=64, process_steps=4, finetune=False, aggregate='max',attend_neighbours=False):
+
+    def __init__(self, embed_dim, num_symbols, use_pretrain=True, embed=None, dropout=0.2, batch_size=64, process_steps=4, finetune=False, aggregate='max', attend_neighbours=False):
         super(EmbedMatcher, self).__init__()
         self.embed_dim = embed_dim
         self.pad_idx = num_symbols
@@ -41,10 +42,9 @@ class EmbedMatcher(nn.Module):
         self.support_encoder = SupportEncoder(d_model, 2*d_model, dropout)
         self.query_encoder = QueryEncoder(d_model, process_steps)
 
-        #for attention 
-        self.attend_neighbours=attend_neighbours
-        self.query_nbr_attention=ScaledDotProductAttention(d_model)
-
+        # for attention
+        self.attend_neighbours = attend_neighbours
+        self.query_nbr_attention = ScaledDotProductAttention(d_model)
 
     def neighbor_encoder(self, connections, num_neighbors):
         '''
@@ -74,18 +74,20 @@ class EmbedMatcher(nn.Module):
         num_neighbors: (batch,)
         '''
         num_neighbors = num_neighbors.unsqueeze(1)
-        relations = connections[:,:,0].squeeze(-1)
-        entities = connections[:,:,1].squeeze(-1)
-        rel_embeds = self.dropout(self.symbol_emb(relations)) # (batch, 200, embed_dim)
-        ent_embeds = self.dropout(self.symbol_emb(entities)) # (batch, 200, embed_dim)
+        relations = connections[:, :, 0].squeeze(-1)
+        entities = connections[:, :, 1].squeeze(-1)
+        rel_embeds = self.dropout(self.symbol_emb(
+            relations))  # (batch, 200, embed_dim)
+        ent_embeds = self.dropout(self.symbol_emb(
+            entities))  # (batch, 200, embed_dim)
 
-        concat_embeds = torch.cat((rel_embeds, ent_embeds), dim=-1) # (batch, 200, 2*embed_dim)
+        # (batch, 200, 2*embed_dim)
+        concat_embeds = torch.cat((rel_embeds, ent_embeds), dim=-1)
 
+        out = concat_embeds
 
-        out=concat_embeds
-
-        batch_size,num_neighbors=list(out.size())[:2]
-        support=support.repeat(batch_size,num_neighbors,1)
+        batch_size, num_neighbors = list(out.size())[:2]
+        support = support.repeat(batch_size, num_neighbors, 1)
 
         # print(support[0][0][:])
         # print(support[batch_size-1][num_neighbors-1][:])
@@ -93,27 +95,21 @@ class EmbedMatcher(nn.Module):
         # print("Batch size:{}, Number of neighbours: {}".format(batch_size,num_neighbors))
         # print("Query(support) shape: {}, Key/Value(neighbours) shape: {}".format(support.shape,out.shape))
 
-        out,_=self.query_nbr_attention(support,out,out)
+        out, _ = self.query_nbr_attention(support, out, out)
 
         # print("Attention module output shape: {}".format(out.shape))
-
 
         # out = self.gcn_w(concat_embeds)
         out = self.gcn_w(out)
 
         # print("GCN layer output shape: {}".format(out.shape))
 
-
-        
-        out = torch.sum(out, dim=1) # (batch, embed_dim)
-
+        out = torch.sum(out, dim=1)  # (batch, embed_dim)
 
         out = out / num_neighbors
         return out.tanh()
 
-
-
-    def forward(self, query, support, query_meta=None, support_meta=None):
+    def forward(self, query, support, query_meta=None, support_meta=None, neighbour_encode_only=False):
         '''
         query: (batch_size, 2)
         support: (few, 2)
@@ -125,29 +121,33 @@ class EmbedMatcher(nn.Module):
             return self.forward_neighbour_encoder(query, support, query_meta, support_meta)
         # print('Not In Neigbour encoder only')
 
-
         query_left_connections, query_left_degrees, query_right_connections, query_right_degrees = query_meta
         support_left_connections, support_left_degrees, support_right_connections, support_right_degrees = support_meta
-
 
         support_left = self.neighbor_encoder(
             support_left_connections, support_left_degrees)
         support_right = self.neighbor_encoder(
             support_right_connections, support_right_degrees)
 
-        support_neighbor = torch.cat((support_left, support_right), dim=-1) # tanh
+        support_neighbor = torch.cat(
+            (support_left, support_right), dim=-1)  # tanh
 
         support = support_neighbor
 
         if(not self.attend_neighbours):
-            query_left = self.neighbor_encoder(query_left_connections, query_left_degrees)
-            query_right = self.neighbor_encoder(query_right_connections, query_right_degrees)
-            query_neighbor = torch.cat((query_left, query_right), dim=-1) # tanh
+            query_left = self.neighbor_encoder(
+                query_left_connections, query_left_degrees)
+            query_right = self.neighbor_encoder(
+                query_right_connections, query_right_degrees)
+            query_neighbor = torch.cat(
+                (query_left, query_right), dim=-1)  # tanh
         else:
-            query_left = self.neighbor_encoder_attn(query_left_connections, query_left_degrees,support)
-            query_right = self.neighbor_encoder_attn(query_right_connections, query_right_degrees,support)
-            query_neighbor = torch.cat((query_left, query_right), dim=-1) # tanh
-        
+            query_left = self.neighbor_encoder_attn(
+                query_left_connections, query_left_degrees, support)
+            query_right = self.neighbor_encoder_attn(
+                query_right_connections, query_right_degrees, support)
+            query_neighbor = torch.cat(
+                (query_left, query_right), dim=-1)  # tanh
 
         query = query_neighbor
 
