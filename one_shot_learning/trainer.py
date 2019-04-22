@@ -18,6 +18,8 @@ from matcher import *
 from tensorboardX import SummaryWriter
 
 import datetime
+from grapher import Graph
+
 
 class Trainer(object):
 
@@ -61,8 +63,8 @@ class Trainer(object):
         self.num_symbols = len(self.symbol2id.keys()) - 1  # one for 'PAD'
         self.pad_id = self.num_symbols
         self.matcher = EmbedMatcher(self.embed_dim, self.num_symbols, use_pretrain=self.use_pretrain, embed=self.symbol2vec, dropout=self.dropout,
-                                    batch_size=self.batch_size, process_steps=self.process_steps, finetune=self.fine_tune, 
-                                    aggregate=self.aggregate,attend_neighbours=self.attend_neighbours)
+                                    batch_size=self.batch_size, process_steps=self.process_steps, finetune=self.fine_tune,
+                                    aggregate=self.aggregate, attend_neighbours=self.attend_neighbours)
         self.matcher.cuda()
 
         self.batch_nums = 0
@@ -94,6 +96,11 @@ class Trainer(object):
         self.e1rel_e2 = defaultdict(list)
         self.e1rel_e2 = json.load(open(self.dataset + '/e1rel_e2.json'))
 
+        # Create Graph object (for querying paths later on)
+        logging.info(
+            'BUILDING GRAPH OBJECT FOR {} DATASET'.format(arg.dataset))
+        self.graph = Graph(arg.dataset)
+
     def load_symbol2id(self):
 
         # if self.embed_model == 'RESCAL':
@@ -117,6 +124,7 @@ class Trainer(object):
                 id_symbol[i] = key
 
                 i += 1
+        self.relation_sym_range = (0, i-1)
 
         for key in ent2id.keys():
             if key not in ['', 'OOV']:
@@ -124,6 +132,7 @@ class Trainer(object):
                 id_symbol[i] = key
 
                 i += 1
+        self.ent_sym_range = (self.relation_sym_range[1]+1, i-1)
 
         symbol_id['PAD'] = i
         id_symbol[i] = 'PAD'
@@ -180,6 +189,7 @@ class Trainer(object):
 
                     i += 1
                     embeddings.append(list(rel_embed[rel2id[key], :]))
+            self.relation_sym_range = (0, i-1)
 
             for key in ent2id.keys():
                 if key not in ['', 'OOV']:
@@ -187,6 +197,7 @@ class Trainer(object):
                     id_symbol[i] = key
                     i += 1
                     embeddings.append(list(ent_embed[ent2id[key], :]))
+            self.ent_sym_range = (self.relation_sym_range[1]+1, i-1)
 
             symbol_id['PAD'] = i
             id_symbol[i] = 'PAD'
@@ -435,7 +446,6 @@ class Trainer(object):
 
         rel2candidates = self.rel2candidates
 
-
         hits10 = []
         hits5 = []
         hits1 = []
@@ -452,7 +462,7 @@ class Trainer(object):
 
             candidates = rel2candidates[query_]
 
-            #for low memory
+            # for low memory
             # candidates=candidates[:2000]
 
             support_triples = test_tasks[query_][:few]
@@ -577,14 +587,21 @@ class Trainer(object):
         self.eval(mode='dev', meta=self.meta, save_results=self.save_results)
         self.eval(mode='test', meta=self.meta, save_results=self.save_results)
 
-    def run(self, mode='new_rel', meta=False):
+    def run(self, mode='new_rel', meta=False, query_object={}):
         self.matcher.eval()
 
         symbol2id = self.symbol2id
         few = self.few
 
         logging.info('EVALUATING ON QUERY DATA')
-        tasks = json.load(open(self.query_file))
+
+        results = {}
+
+        tasks = {}
+        if query_object == {}:
+            tasks = json.load(open(self.query_file))
+        else:
+            tasks = query_object
 
         rel2candidates = self.rel2candidates
 
@@ -623,6 +640,8 @@ class Trainer(object):
                 support_meta = self.get_meta(support_left, support_right)
 
             support = Variable(torch.LongTensor(support_pairs)).cuda()
+
+            results[query_] = []
 
             for triple in tasks[query_][few:]:
 
@@ -667,6 +686,11 @@ class Trainer(object):
                 rel = self.id2symbol[query_pairs[sort[0]][0]]
                 top_e = self.id2symbol[query_pairs[sort[0]][1]]
 
+                all_in_rank_order = []
+                for i in sort:
+                    all_in_rank_order.append(query_pairs[i])
+                results[query_].append(all_in_rank_order)
+
                 print("\nTop 10 Results")
                 for target_rank in range(10):
                     index = sort[target_rank]
@@ -697,11 +721,12 @@ class Trainer(object):
                 for path in paths:
                     print("*********")
                     print(path)
+        return results
 
-    def run_(self):
+    def run_(self, query_object={}):
         self.load()
         logging.info('Pre-trained model loaded')
-        self.run(mode=self.app_mode, meta=self.meta)
+        return self.run(mode=self.app_mode, meta=self.meta, query_object=query_object)
 
 
 if __name__ == '__main__':
