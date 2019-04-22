@@ -240,11 +240,21 @@ class Trainer(object):
                 self.e1_rele2[e2].append(
                     (self.symbol2id[rel+'_inv'], self.symbol2id[e1]))
 
+        def temp_func(x):
+            # print(x)
+            # print(len(self.e1_rele2[self.id2symbol[x[1]]]))
+            # if(len(self.e1_rele2[self.id2symbol[x[1]]]) > 9000):
+                # print(self.id2symbol[x[1]])
+            return len(self.e1_rele2[self.id2symbol[x[1]]])
+
         degrees = {}
         for ent, id_ in self.ent2id.items():
             neighbors = self.e1_rele2[ent]
             if len(neighbors) > max_:
+                # print('1',list(map(temp_func, neighbors))[:max_])
+                neighbors = sorted(neighbors, key=temp_func, reverse=True)
                 neighbors = neighbors[:max_]
+                # print(list(map(temp_func, neighbors)))
             # degrees.append(len(neighbors))
             degrees[ent] = len(neighbors)
             self.e1_degrees[id_] = len(neighbors)  # add one for self conn
