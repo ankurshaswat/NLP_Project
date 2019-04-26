@@ -247,27 +247,31 @@ class Trainer(object):
         for ent, id_ in self.ent2id.items():
             neighbors = self.e1_rele2[ent]
             if len(neighbors) > max_:
-                # print('1',list(map(temp_func, neighbors)))
-                neighbors_sorted = sorted(neighbors, key=temp_func, reverse=True)
-                new_neighbours = []
-                entities_added = []
-                for neighbour in neighbors_sorted:
-                    if neighbour[1] in entities_added:
-                        continue
-                    else:
-                        new_neighbours.append(neighbour)
-                        entities_added.append(neighbour[1])
-
-                if(len(new_neighbours)<max_):
-                    # while(len(new_neigbors)<max_):
+                if self.sort_neighbours:
+                    # print('1',list(map(temp_func, neighbors)))
+                    neighbors_sorted = sorted(
+                        neighbors, key=temp_func, reverse=True)
+                    new_neighbours = []
+                    entities_added = []
                     for neighbour in neighbors_sorted:
-                        if neighbour not in new_neighbours:
+                        if neighbour[1] in entities_added:
+                            continue
+                        else:
                             new_neighbours.append(neighbour)
-                            if(len(new_neighbours)==max_):
-                                break
+                            entities_added.append(neighbour[1])
 
+                    if(len(new_neighbours) < max_):
+                        # while(len(new_neigbors)<max_):
+                        for neighbour in neighbors_sorted:
+                            if neighbour not in new_neighbours:
+                                new_neighbours.append(neighbour)
+                                if(len(new_neighbours) == max_):
+                                    break
 
-                neighbors = new_neighbours[:max_]
+                    neighbors = new_neighbours[:max_]
+                else:
+                    neighbors = neighbors[:max_]
+
                 # print(list(map(temp_func, neighbors)))
             # degrees.append(len(neighbors))
             degrees[ent] = len(neighbors)
@@ -462,6 +466,8 @@ class Trainer(object):
         symbol2id = self.symbol2id
         few = self.few
 
+        # f = open(str(datetime.datetime.now())+self.prefix, 'w')
+
         logging.info('EVALUATING ON %s DATA' % mode.upper())
         if mode == 'dev':
             test_tasks = json.load(open(self.dataset + '/dev_tasks.json'))
@@ -546,13 +552,23 @@ class Trainer(object):
                 sort = list(np.argsort(scores))[::-1]
                 rank = sort.index(0) + 1
 
+                # print(self.id2symbol[support[0][0].item()],self.id2symbol[self.id2symbol[0][1].item()])
+                # f.write()
+                # f.write(self.id2symbol[support[0][0].item()] + ' '
+                #         + query_ + ' ' + self.id2symbol[support[0][1].item()] + '\n')
+                # print(self.id2symbol[support[0][0].item()],
+                #       query_, self.id2symbol[support[0][1].item()])
+                # # print(support[0][1].item())
+                # print(triple)
+                # break
                 # print(rank)
                 # for i in sort[:5]:
                 # print(query_pairs[i])
                 # print(id2ent)
                 # print(id2ent[19176])
                 top5 = [id2ent[query_pairs[i][1]] for i in sort[:5]]
-                triple_stats[triple[0]] = (true, rank, top5)
+                triple_stats[triple[0]] = (
+                    true, rank, top5, self.e1_degrees[self.ent2id[triple[0]]] , self.e1_degrees[self.ent2id[true]])
 
                 if rank <= 10:
                     hits10.append(1.0)

@@ -37,6 +37,7 @@ def read_options():
                         type=str, choices=['test', 'train', 'query_new_rel', 'query_old_rel'])
     parser.add_argument("--fluctuate", action='store_true')
     parser.add_argument("--attend_neighbours", action='store_true')
+    parser.add_argument("--sort_neighbours", action='store_true')
 
 
     args = parser.parse_args()
