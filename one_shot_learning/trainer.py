@@ -537,10 +537,16 @@ class Trainer(object):
 
                 query = Variable(torch.LongTensor(query_pairs)).cuda()
 
+                # if (log_attn): 
+                #     param=id2ent  #pass id2ent dictionary for printing attn weights
+                # else:
+                #     param=None    
+                param=None
+
                 if meta:
                     query_meta = self.get_meta(query_left, query_right)
                     scores = self.matcher(
-                        query, support, query_meta, support_meta)
+                        query, support, query_meta, support_meta, id2ent=param)
                     scores.detach()
                     scores = scores.data
                 else:
@@ -645,6 +651,8 @@ class Trainer(object):
 
         rel2candidates = self.rel2candidates
 
+
+
         for query_ in tasks.keys():
 
             if (mode == 'query_old_rel'):
@@ -707,14 +715,21 @@ class Trainer(object):
 
                 query = Variable(torch.LongTensor(query_pairs)).cuda()
 
+
+                if (self.attend_neighbours): 
+                    param=self.id2symbol  #pass id2symbol dictionary for printing attn weights
+                else:
+                    param=None    
+
+
                 if meta:
                     query_meta = self.get_meta(query_left, query_right)
                     scores = self.matcher(
-                        query, support, query_meta, support_meta)
+                        query, support, query_meta, support_meta,id2ent=param)
                     scores.detach()
                     scores = scores.data
                 else:
-                    scores = self.matcher(query, support)
+                    scores = self.matcher(query, support, id2ent=param)
                     scores.detach()
                     scores = scores.data
 
@@ -738,6 +753,9 @@ class Trainer(object):
                     print('Rank', target_rank+1, ': Head=', self.id2symbol[query_pair[0]][8:], 'Relation=', query_[
                           8:], 'Tail=', self.id2symbol[query_pair[1]][8:])
 
+                    print("\nAttended neighbours for tail: ")
+                    print(self.matcher.attention_results[1][index])
+                    print("\n\n")
                     # if(target_rank==2):
                     # top_e=query_pair[1]
 
