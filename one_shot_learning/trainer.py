@@ -610,7 +610,7 @@ class Trainer(object):
             # print 'MAP: ', np.mean(mrr_)
 
         if(save_results):
-            filename = "{}_{}_results".format(self.prefix, mode)
+            filename = "results/{}_{}_results".format(self.prefix, mode)
             with open(filename, "wb") as output_file:
                 pickle.dump(results, output_file)
             print("Saved results for {} in {}".format(mode, filename))
