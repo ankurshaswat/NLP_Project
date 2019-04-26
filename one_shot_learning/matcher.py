@@ -13,7 +13,7 @@ class EmbedMatcher(nn.Module):
     Matching metric based on KB Embeddings
     """
 
-    def __init__(self, embed_dim, num_symbols, use_pretrain=True, embed=None, dropout=0.2, batch_size=64, process_steps=4, finetune=False, aggregate='max', attend_neighbours=False):
+    def __init__(self, embed_dim, num_symbols, use_pretrain=True, embed=None, dropout=0.2, batch_size=64, process_steps=4, finetune=False, aggregate='max', attend_neighbours=0):
         super(EmbedMatcher, self).__init__()
         self.embed_dim = embed_dim
         self.pad_idx = num_symbols
@@ -44,8 +44,10 @@ class EmbedMatcher(nn.Module):
 
         # for attention
         self.attend_neighbours = attend_neighbours
-        self.query_nbr_attention = ScaledDotProductAttention(d_model)
-        self.query_nbr_attention2 = ScaledDotProductAttention2(d_model)
+        if(attend_neighbours==1):
+            self.query_nbr_attention = ScaledDotProductAttention(d_model)
+        else:
+            self.query_nbr_attention = ScaledDotProductAttention2(d_model)
         
 
         # save attention results (updated every forward pass)
@@ -75,76 +77,8 @@ class EmbedMatcher(nn.Module):
         out = out / num_neighbors
         return out.tanh()
 
+
     def neighbor_encoder_attn(self, connections, num_neighbors, support, id2ent=None, head_or_tail=0 ):
-        '''
-        connections: (batch, 200, 2)
-        num_neighbors: (batch,)
-        '''
-        num_neighbors = num_neighbors.unsqueeze(1)
-        relations = connections[:, :, 0].squeeze(-1)
-        entities = connections[:, :, 1].squeeze(-1)
-        rel_embeds = self.dropout(self.symbol_emb(
-            relations))  # (batch, 200, embed_dim)
-        ent_embeds = self.dropout(self.symbol_emb(
-            entities))  # (batch, 200, embed_dim)
-
-        # (batch, 200, 2*embed_dim)
-        concat_embeds = torch.cat((rel_embeds, ent_embeds), dim=-1)
-
-        out = concat_embeds
-
-        batch_size, num_neighbors = list(out.size())[:2]
-        
-        print("Query(support) shape before: {}".format(support.shape))
-        
-        support = support.repeat(batch_size, num_neighbors, 1)
-        # support = support.repeat(batch_size, 1, 1)
-        
-
-        # print(support[0][0][:])
-        # print(support[batch_size-1][num_neighbors-1][:])
-
-        # print("Batch size:{}, Number of neighbours: {}".format(batch_size,num_neighbors))
-        print("Query(support) shape: {}, Key/Value(neighbours) shape: {}".format(support.shape,out.shape))
-
-        out, attn_wts = self.query_nbr_attention(support, out, out)
-        if(id2ent is not None):
-            attn_wts=attn_wts.cpu().detach().numpy()
-            print("\nAttn_wts shape:", attn_wts.shape)
-            print("\nAttn_layer output shape:", out.shape)
-            
-
-            sorted_indices= [np.argsort(attn_wts[i,0,:]) for i in range(batch_size) ]
-
-            results=[0]*batch_size
-
-            for ind,l in enumerate(sorted_indices):
-                ent_list= [id2ent[ entities[ind][i].item() ] for i in l]
-                rel_list= [id2ent[ relations[ind][i].item() ] for i in l]
-                
-                ent_list=list(reversed(ent_list)) [:5] #most attended to least attended
-                rel_list=list(reversed(rel_list)) [:5]
-
-                results[ind]=(ent_list,rel_list)
-
-            self.attention_results[head_or_tail]=results
-
-        # print("Attention module output shape: {}".format(out.shape))
-
-        # out = self.gcn_w(concat_embeds)
-        out = self.gcn_w(out)
-
-        # print("GCN layer output shape: {}".format(out.shape))
-
-        out = torch.sum(out, dim=1)  # (batch, embed_dim)
-
-        out = out / num_neighbors
-        return out.tanh()
-
-
-
-
-    def neighbor_encoder_attn2(self, connections, num_neighbors, support, id2ent=None, head_or_tail=0 ):
         '''
         connections: (batch, 200, 2)
         num_neighbors: (batch,)
@@ -171,19 +105,19 @@ class EmbedMatcher(nn.Module):
         # print("Batch size:{}, Number of neighbours: {}".format(batch_size,num_neighbors))
         # print("Query(support) shape: {}, Key/Value(neighbours) shape: {}".format(support.shape,out.shape))
 
-        # print("Input value:",out[0,0,:])
+        # print("Input value:",out[-1,1,:])
 
         out, attn_wts = self.query_nbr_attention(support, out, out)
 
         # print("Attention module output shape: {}".format(out.shape))
         
-        # print("Output value:",out[0,0,:])
+        # print("Output value:",out[-1,1,:])
 
 
         if(id2ent is not None):
             attn_wts=attn_wts.cpu().detach().numpy()
             # print("\nAttn_wts shape:", attn_wts.shape)
-            # print("\nAttn_layer output shape:", out.shape)
+            print("\nAttn_layer output shape:", out.shape)
             
 
             sorted_indices= [np.argsort(attn_wts[i,0,:]) for i in range(batch_size) ]
@@ -252,7 +186,7 @@ class EmbedMatcher(nn.Module):
 
         support = support_neighbor
 
-        if(not self.attend_neighbours):
+        if(self.attend_neighbours==0):
             query_left = self.neighbor_encoder(
                 query_left_connections, query_left_degrees)
             query_right = self.neighbor_encoder(
@@ -260,12 +194,14 @@ class EmbedMatcher(nn.Module):
             query_neighbor = torch.cat(
                 (query_left, query_right), dim=-1)  # tanh
         else:
-            query_left = self.neighbor_encoder_attn2(
+            query_left = self.neighbor_encoder_attn(
                 query_left_connections, query_left_degrees, support, id2ent=id2ent,head_or_tail=0)
-            query_right = self.neighbor_encoder_attn2(
+            query_right = self.neighbor_encoder_attn(
                 query_right_connections, query_right_degrees, support, id2ent=id2ent,head_or_tail=1)
             query_neighbor = torch.cat(
                 (query_left, query_right), dim=-1)  # tanh
+
+
 
         query = query_neighbor
 

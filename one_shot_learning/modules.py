@@ -102,11 +102,27 @@ class ScaledDotProductAttention2(nn.Module):
         attn = self.softmax(attn)
         # print("\n\nAttn layer softmax output: ", attn)
         attn = self.dropout(attn)
+        attn_wts=attn
+
+
         # output = torch.bmm(attn, v)
-        output = attn.transpose(1,2)* v
+        # print(attn[3000,0,:])
+        # print("attn shape:",attn.shape)
+
+        attn=attn[:,0,:,None]
+        
+        # print("attn shape:",attn.shape)
+        # print(v.size()[-1] )
+        
+        attn=attn.expand(-1,-1,list(v.size())[-1]) 
+        
+        # print("attn shape:",attn.shape)          
+        # print(attn[3000,1,:])             
+        # attn=attn.transpose(1,2)
+        output = attn* v
 
 
-        return output, attn
+        return output, attn_wts
 
 
 
