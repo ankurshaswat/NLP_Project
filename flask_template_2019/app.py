@@ -8,7 +8,7 @@ import logging
 from logging import Formatter, FileHandler
 from forms import *
 import os
-
+import json
 from extra_files.runner import Trainer
 
 #----------------------------------------------------------------------------#
@@ -50,11 +50,34 @@ args = {
 "sort_neighbours":False
 }
 
+with open('extra_files/NELLoptions.json') as handle:
+    options = json.loads(handle.read())
 model = Trainer(args)
 
 def predict(input):
-    output = model(input)
 
+    support = [
+            input["e1"],
+            input["rel"],
+            input["e2"]
+            # "concept:automobilemodel:windstar",
+            # "concept:producedby",
+            # "concept:company:ford001"
+        ]
+
+    head = input["query"]
+    # head = "concept:product:wii_console"
+
+    candidate_type = support[2].split(":")[1]
+
+    raw_candidates = options['ents'][candidate_type][:100]
+
+    candidates = []
+    for cand in raw_candidates:
+        candidates.append("concept:"+candidate_type+":"+cand)
+
+    output = model.rank(support, head,candidates)
+    # print(output)
     return output
 
 #----------------------------------------------------------------------------#
