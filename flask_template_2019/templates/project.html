@@ -9,17 +9,28 @@
 
 				<form action="" method="post" name="query">
 					<p class="form form-reset">
-            Please enter your input:<br>
-            <input name="input_text" size="100" type="text" /></p>
+            Subject:<br>
+            <input name="e1" size="100" type="text" value="automobilemodel:windstar" /></p>
+
+            Relation:<br>
+            <input name="rel" size="100" type="text" value="producedby"/></p>
+
+            Object:<br>            
+            <input name="e2" size="100" type="text" value="company:ford001" /></p>
+
+            Query:<br>                        
+            <input name="query" size="100" type="text" value="product:wii_console"/></p>
+            
+
             <input name="submit_btn" type="submit" value="Submit" /></p>
 
           </p>
 				</form>
 
-        <p> {{ result }} </p>
-        <p> {{ word1 }} </p>
-        <p> {{ word2 }} </p>
-        <p> {{ word3 }} </p>
+        Top 10 results- <br>
+        {% for result in results %}
+          <p> {{ result }} </p>
+        {% endfor %}
 				<br>
 				<pre style="background-color: transparent; border: 0">
 				</pre>
