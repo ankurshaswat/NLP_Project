@@ -57,15 +57,15 @@ model = Trainer(args)
 def predict(input):
 
     support = [
-            input["e1"],
+            'concept:'+input["e1"],
             input["rel"],
-            input["e2"]
+            'concept:'+input["e2"]
             # "concept:automobilemodel:windstar",
             # "concept:producedby",
             # "concept:company:ford001"
         ]
 
-    head = input["query"]
+    head = 'concept:'+input["query"]
     # head = "concept:product:wii_console"
 
     candidate_type = support[2].split(":")[1]
@@ -77,8 +77,8 @@ def predict(input):
         candidates.append("concept:"+candidate_type+":"+cand)
 
     output = model.rank(support, head,candidates)
-    # print(output)
-    return output
+    print(output)
+    return {'results':output}
 
 #----------------------------------------------------------------------------#
 # Controllers.
@@ -87,7 +87,7 @@ def predict(input):
 def home():
     if request.method == 'POST':
         ## Called after submit button is clicked
-        output = predict(request.form['input_text'])
+        output = predict(request.form)
         template = render_template('project.html', result=output)
         return template
 
