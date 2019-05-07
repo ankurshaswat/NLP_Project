@@ -310,8 +310,8 @@ class QueryEncoder(nn.Module):
             return query
 
         batch_size = query.size()[0]
-        h_r = Variable(torch.zeros(batch_size, 2*self.input_dim)).cuda()
-        c = Variable(torch.zeros(batch_size, 2*self.input_dim)).cuda()
+        h_r = Variable(torch.zeros(batch_size, 2*self.input_dim))#.cuda()
+        c = Variable(torch.zeros(batch_size, 2*self.input_dim))#.cuda()
         for step in range(self.process_step):
             h_r_, c = self.process(query, (h_r, c))
             h = query + h_r_[:,:self.input_dim] # (batch_size, query_dim)

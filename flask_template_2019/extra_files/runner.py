@@ -5,6 +5,7 @@ import numpy as np
 # import torch
 # import torch.nn.functional as F
 # import datetime
+import torch
 
 from collections import defaultdict
 # from collections import deque
@@ -16,6 +17,7 @@ from tqdm import tqdm
 # from data_loader import *
 from matcher import EmbedMatcher
 # from tensorboardX import SummaryWriter
+from torch.autograd import Variable
 
 # import datetime
 # from grapher import Graph
@@ -317,7 +319,7 @@ class Trainer(object):
 
         return (left_connections, left_degrees, right_connections, right_degrees)
 
-    def rank(self,support,candidates):
+    def rank(self,support,head,candidates,meta = True):
         self.matcher.eval()
 
         symbol2id = self.symbol2id
@@ -326,8 +328,6 @@ class Trainer(object):
         results = {}
 
         tasks = {}
-
-        rel2candidates = self.rel2candidates
 
         support_triples = [support]
         support_pairs = [[symbol2id[triple[0]], symbol2id[triple[2]]]
@@ -342,9 +342,9 @@ class Trainer(object):
 
         support = Variable(torch.LongTensor(support_pairs))#.cuda()
 
-        results[query_] = []
+        # results[query_] = []
 
-        neighbors_of_top = self.e1_rele2[triple[0]]
+        neighbors_of_top = self.e1_rele2[head]
 
         query_pairs = []
 
@@ -354,9 +354,9 @@ class Trainer(object):
 
         for ent in candidates:
             query_pairs.append(
-                [symbol2id[triple[0]], symbol2id[ent]])
+                [symbol2id[head], symbol2id[ent]])
             if meta:
-                query_left.append(self.ent2id[triple[0]])
+                query_left.append(self.ent2id[head])
                 query_right.append(self.ent2id[ent])
 
         query = Variable(torch.LongTensor(query_pairs))#.cuda()
@@ -379,6 +379,6 @@ class Trainer(object):
 
         all_in_rank_order = []
         for i in sort:
-            all_in_rank_order.append(self.id2symbol[query_pairs[i]])
+            all_in_rank_order.append(self.id2symbol[query_pairs[i][1]])
 
         return all_in_rank_order[:10]
