@@ -1,0 +1,14 @@
+{
+    "concept:geopoliticallocationresidenceofpersion": [
+        [
+            "concept:city:lancaster",
+            "concept:geopoliticallocationresidenceofpersion",
+            "concept:person:diana_greenough"
+        ],
+        [
+            "concept:country:zambia",
+            "concept:geopoliticallocationresidenceofpersion",
+            "concept:person:kenneth_kaunda"
+        ]
+    ]
+}

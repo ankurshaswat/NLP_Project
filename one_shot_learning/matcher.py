@@ -128,8 +128,8 @@ class EmbedMatcher(nn.Module):
                 ent_list= [id2ent[ entities[ind][i].item() ] for i in l]
                 rel_list= [id2ent[ relations[ind][i].item() ] for i in l]
                 
-                ent_list=list(reversed(ent_list)) [:5] #most attended to least attended
-                rel_list=list(reversed(rel_list)) [:5]
+                ent_list=list(reversed(ent_list)) [:] #most attended to least attended
+                rel_list=list(reversed(rel_list)) [:]
 
                 results[ind]=(ent_list,rel_list)
 

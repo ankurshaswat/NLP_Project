@@ -537,11 +537,11 @@ class Trainer(object):
 
                 query = Variable(torch.LongTensor(query_pairs)).cuda()
 
-                # if (log_attn): 
+                # if (log_attn):
                 #     param=id2ent  #pass id2ent dictionary for printing attn weights
                 # else:
-                #     param=None    
-                param=None
+                #     param=None
+                param = None
 
                 if meta:
                     query_meta = self.get_meta(query_left, query_right)
@@ -574,7 +574,7 @@ class Trainer(object):
                 # print(id2ent[19176])
                 top5 = [id2ent[query_pairs[i][1]] for i in sort[:5]]
                 triple_stats[triple[0]] = (
-                    true, rank, top5, self.e1_degrees[self.ent2id[triple[0]]] , self.e1_degrees[self.ent2id[true]])
+                    true, rank, top5, self.e1_degrees[self.ent2id[triple[0]]], self.e1_degrees[self.ent2id[true]])
 
                 if rank <= 10:
                     hits10.append(1.0)
@@ -651,8 +651,6 @@ class Trainer(object):
 
         rel2candidates = self.rel2candidates
 
-
-
         for query_ in tasks.keys():
 
             if (mode == 'query_old_rel'):
@@ -715,17 +713,15 @@ class Trainer(object):
 
                 query = Variable(torch.LongTensor(query_pairs)).cuda()
 
-
-                if (self.attend_neighbours): 
-                    param=self.id2symbol  #pass id2symbol dictionary for printing attn weights
+                if (self.attend_neighbours):
+                    param = self.id2symbol  # pass id2symbol dictionary for printing attn weights
                 else:
-                    param=None    
-
+                    param = None
 
                 if meta:
                     query_meta = self.get_meta(query_left, query_right)
                     scores = self.matcher(
-                        query, support, query_meta, support_meta,id2ent=param)
+                        query, support, query_meta, support_meta, id2ent=param)
                     scores.detach()
                     scores = scores.data
                 else:
@@ -736,7 +732,7 @@ class Trainer(object):
                 scores = scores.cpu().numpy()
                 sort = list(np.argsort(scores))[::-1]
                 print("Rank of ground truth: ",
-                      sort.index(candidates.index(true)))
+                      sort.index(candidates.index(true)) + 1)
 
                 rel = self.id2symbol[query_pairs[sort[0]][0]]
                 top_e = self.id2symbol[query_pairs[sort[0]][1]]
@@ -753,9 +749,11 @@ class Trainer(object):
                     print('Rank', target_rank+1, ': Head=', self.id2symbol[query_pair[0]][8:], 'Relation=', query_[
                           8:], 'Tail=', self.id2symbol[query_pair[1]][8:])
 
-                    print("\nAttended neighbours for tail: ")
-                    print(self.matcher.attention_results[1][index])
-                    print("\n\n")
+                    # if self.attend_neighbours != 0:
+                    #     print("\nAttended neighbours for tail: ")
+                    #     print(self.matcher.attention_results[1][index])
+                    #     print("\n\n")
+
                     # if(target_rank==2):
                     # top_e=query_pair[1]
 

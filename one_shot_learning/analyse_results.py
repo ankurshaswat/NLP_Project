@@ -54,22 +54,30 @@ def degree_vs_ranks(graph, results, rank_cutoff=5, degree_threshold=50):
         scarce_tails = []
 
         for head in triple_stats:
-            tail, rank, top5 = triple_stats[head]
+            tail, rank, top5, _, _ = triple_stats[head]
 
             head_deg = len(graph.connections[head]) + \
                 len(graph._connections[head])
             tail_deg = len(graph.connections[tail]) + \
                 len(graph._connections[tail])
-            head_degree_ranks.append((head_deg+tail_deg, rank))
+            neighbour_degs = 0
+            for x in [head, tail]:
+                for i in graph.connections[x]:
+                    neighbour_degs += len(graph.connections[i]) + \
+                        len(graph._connections[i])
+                for i in graph._connections[x]:
+                    neighbour_degs += len(graph.connections[i]) + \
+                        len(graph._connections[i])
+            head_degree_ranks.append((head_deg+tail_deg+neighbour_degs, rank))
             tail_degree_ranks.append((tail_deg, rank))
 
-            if(rank <= rank_cutoff):
-                if(head_deg < degree_threshold):
-                    scarce_heads.append(head)
-                if(tail_deg < degree_threshold):
-                    scarce_tails.append(tail)
+            # if(rank <= rank_cutoff):
+            #     if(head_deg < degree_threshold):
+            scarce_heads.append(head)
+            # if(tail_deg < degree_threshold):
+            scarce_tails.append(tail)
 
-                relation_wise_stats[rel]['total_entities'] += 1
+            relation_wise_stats[rel]['total_entities'] += 1
 
         relation_wise_stats[rel]['deg_rank'] += head_degree_ranks
 
@@ -120,10 +128,11 @@ def degree_vs_ranks(graph, results, rank_cutoff=5, degree_threshold=50):
                 # continue
             x.append(r)
             # y.append(deg)
-            y.append(min(deg, 2*degree_threshold))
+            # y.append(min(deg, 2*degree_threshold))
+            y.append(deg)
 
         plt.xlabel('Rank')
-        plt.ylabel('Degree')
+        plt.ylabel('Size of neighbourhood')
         plt.title('Relation: {}'.format(rel))
         plt.scatter(x, y)
         plt.show()
@@ -150,10 +159,10 @@ def degree_vs_ranks(graph, results, rank_cutoff=5, degree_threshold=50):
 
 #         return results_copy
 
-# if __name__=='__main__':
+# if __name__ == '__main__':
 
-#     dataset=sys.argv[1]
-#     results_file=sys.argv[2]
+#     dataset = sys.argv[1]
+#     results_file = sys.argv[2]
 #     with open(results_file, "rb") as input_file:
 #         results = pickle.load(input_file)
 
@@ -161,9 +170,10 @@ def degree_vs_ranks(graph, results, rank_cutoff=5, degree_threshold=50):
 #     # if(dataset=='Wiki'):
 #     #     results=translate(results)
 
-#     graph=Graph(dataset)
+#     graph = Graph(dataset)
 #     # best_predictions(results,cutoff=5)
-#     degree_vs_ranks(graph,results)
+#     degree_vs_ranks(graph, results)
+
 
 def compare(dataset, results1, results2):
     for support_triples in results1:
@@ -179,16 +189,16 @@ def compare(dataset, results1, results2):
                 continue
 
             if(rank1 < rank2):
-                print("Model 1 Did Better")
+                print("\nModel 1 Did Better")
                 rank = rank1
                 tail = tail1
             elif(rank1 > rank2):
-                print("Model 2 Did Better")
+                print("\nModel 2 Did Better")
                 rank = rank2
                 tail = tail2
             else:
                 print("Equally Good")
-            print("DIFFERENCE: ",abs(rank1-rank2))
+            print("DIFFERENCE: ", abs(rank1-rank2))
             print("SUPPORT TRIPLES: {}".format(support_triples))
             print("HEAD: {}, TAIL: {}, RANK: {}, DEGREE_HEAD: {}, DEGREE_TRUE: {}".format(
                 head, tail, rank, degree_head, degree_true))

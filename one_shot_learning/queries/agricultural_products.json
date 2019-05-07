@@ -1,0 +1,50 @@
+{
+    "concept:agriculturalproductcamefromcountry": [
+        [
+            "concept:food:sweets",
+            "concept:agriculturalproductcamefromcountry",
+            "concept:country:india"
+        ],
+        [
+            "concept:agriculturalproduct:chilli",
+            "concept:agriculturalproductcamefromcountry",
+            "concept:country:india"
+        ]
+    ],
+    "concept:animalsuchasinvertebrate": [
+        [
+            "concept:insect:marine_life",
+            "concept:animalsuchasinvertebrate",
+            "concept:arthropod:crustaceans"
+        ],
+        [
+            "concept:invertebrate:blood_worms",
+            "concept:animalsuchasinvertebrate",
+            "concept:crustacean:shrimp"
+        ]
+    ],
+    "concept:producedby": [
+        [
+            "concept:automobilemodel:windstar",
+            "concept:producedby",
+            "concept:company:ford001"
+        ],
+        [
+            "concept:product:xbox",
+            "concept:producedby",
+            "concept:company:microsoft"
+        ]
+    ],
+    "concept:sportsgamesport": [
+        [
+            "concept:sportsgame:n1937_world_series",
+            "concept:sportsgamesport",
+            "concept:sport:baseball"
+        ],
+        [
+            "concept:sportsgame:n2003_world_series",
+            "concept:sportsgamesport",
+            "concept:sport:baseball"
+        ]
+    ]
+}

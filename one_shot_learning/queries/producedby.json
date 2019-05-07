@@ -6,6 +6,16 @@
             "concept:company:ford001"
         ],
         [
+            "concept:product:wii_console",
+            "concept:producedby",
+            "concept:company:nintendo"
+        ],
+        [
+            "concept:product:xbox",
+            "concept:producedby",
+            "concept:company:microsoft"
+        ],
+        [
             "concept:automobilemodel:e_150_econoline",
             "concept:producedby",
             "concept:company:ford"
