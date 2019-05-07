@@ -1,0 +1,30 @@
+{% extends 'index.html' %}
+{% block content %}
+		  		<h1> Project-Title </h1>
+				
+
+				<p>
+				    <u><span style="font-size:22px;"></span></u></p>
+				<p> Usage instructions </p>
+
+				<form action="" method="post" name="query">
+					<p class="form form-reset">
+            Please enter your input:<br>
+            <input name="input_text" size="100" type="text" /></p>
+            <input name="submit_btn" type="submit" value="Submit" /></p>
+
+          </p>
+				</form>
+
+        <p> {{ result }} </p>
+        <p> {{ word1 }} </p>
+        <p> {{ word2 }} </p>
+        <p> {{ word3 }} </p>
+				<br>
+				<pre style="background-color: transparent; border: 0">
+				</pre>
+{% endblock %}
+{% block proj_details %}
+        <p> Project Report can be found <a href="report.pdf" target="_blank"> here. </a> </p>
+        <p> Credits: This work was done as part of <a href="http://www.cse.iitd.ac.in/~mausam/courses/col772/spring2019/" target="_blank"> COL772: Natural Language Processing - Spring 2019 </a> by <a href="" target="_blank">Student1 </a> and <a href="" target="_blank"> Student2 </a> </p>
+{% endblock %}

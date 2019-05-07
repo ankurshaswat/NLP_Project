@@ -129,3 +129,7 @@ one_shot_learning/Wiki
 one_shot_learning/datasets
 one_shot_learning/data
 one_shot_learning/results/
+flask_template_2019/env/
+flask_template_2019/NELL/
+flask_template_2019/extra_files/NELL_basic_bestHits10
+flask_template_2019/extra_files/NELLoptions.json
