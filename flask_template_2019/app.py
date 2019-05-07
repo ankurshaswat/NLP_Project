@@ -11,6 +11,8 @@ import os
 import json
 from extra_files.runner import Trainer
 
+from flask import jsonify
+
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -50,6 +52,10 @@ args = {
 "sort_neighbours":False
 }
 
+entity_list=[]
+with open('extra_files/NELLent_list.json') as handle:
+    entity_list=json.loads(handle.read())
+
 with open('extra_files/NELLoptions.json') as handle:
     options = json.loads(handle.read())
 model = Trainer(args)
@@ -77,22 +83,28 @@ def predict(input):
         candidates.append("concept:"+candidate_type+":"+cand)
 
     output = model.rank(support, head,candidates)
+    
+    for i in range(len(output)):
+        output[i]=output[i].replace('concept:','')
+    
     print(output)
-    return {'results':output}
+    return output
 
 #----------------------------------------------------------------------------#
 # Controllers.
 #----------------------------------------------------------------------------#
 @app.route('/', methods=['GET','POST'])
 def home():
+    global entity_list
     if request.method == 'POST':
         ## Called after submit button is clicked
         output = predict(request.form)
-        template = render_template('project.html', result=output)
+        template = render_template('project.html', results=output, entity_list=entity_list)
+        # print(template)
         return template
 
     if request.method == 'GET':
-        return render_template('project.html')
+        return render_template('project.html',entity_list=entity_list )
 
 
 if not app.debug:

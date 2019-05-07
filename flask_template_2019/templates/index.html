@@ -186,12 +186,51 @@ function load_menu (e) {
 
 </script>
 
-    </head>
-     <body  onload="javascript:load_menu()">
-        <img id="watermark" src="https://www.cse.iitd.ac.in/dair/images/banners/iitdelhi_logo50.png">
-	 <div>
-      		 <div id="divMenu" style="width: 200px; float: left;">
-              	</div>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+<script>
+  $( function() {
+    var entity_list = {{entity_list | safe }};
+    
+    
+    
+    
+    
+    
+    
+    // [
+    //   "company:air_asia",
+    //   "company:nintendo",
+    //   "company:new_york_time",
+    //   "product:xbox",
+    //   "product:wii"
+    // ];
+    $( "#e1" ).autocomplete({
+      source: entity_list
+    });
+    $( "#e2" ).autocomplete({
+      source: entity_list
+    });
+    $( "#query" ).autocomplete({
+      source: entity_list
+    });
+
+
+  } );
+</script>
+
+</head>
+
+
+
+     <!-- <body  onload="javascript:load_menu()">
+        <img id="watermark" src="https://www.cse.iitd.ac.in/dair/images/banners/iitdelhi_logo50.png"> -->
+  	 <div>
+      		 <!-- <div id="divMenu" style="width: 200px; float: left;"> -->
+              	<!-- </div> -->
 		<div class="container">
 			<div style="height: 20px"></div>
 			<div id="content">

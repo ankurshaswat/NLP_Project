@@ -13,6 +13,7 @@ id2symbols = {}
 
 i = 0
 
+
 for rel in rel2id:
     if rel not in ['', 'OOV']:
         symbol2ids[rel] = i
@@ -28,6 +29,9 @@ for rel in rel2id:
         rels.append(rel_parts[1])
 
 ents = {}
+
+ent_list=[]
+
 
 for ent in ent2id:
     if ent not in ['', 'OOV']:
@@ -45,10 +49,15 @@ for ent in ent2id:
 
     ents[ent_parts[1]].append(ent_parts[2])
 
+    ent_list.append(ent_parts[1]+":"+ent_parts[2])
+
 symbol2ids['PAD'] = i
 id2symbols[i] = 'PAD'
 
 options = {'ents': ents, 'rels': rels}
+
+with open(dataset_path+'ent_list.json', 'w') as outfile:
+    json.dump(sorted(ent_list), outfile)
 
 with open(dataset_path+'options.json', 'w') as outfile:
     json.dump(options, outfile)
