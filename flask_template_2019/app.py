@@ -40,15 +40,15 @@ args = {
 "grad_clip":5.0,
 "weight_decay":0.0,
 "embed_model":'ComplEx',
-"prefix":'intial',
-"seed":'19940419',
+"prefix":'NELL_attn_bestHits10',
+"seed":19940419,
 "query_file":'queries/query.json',
 "max_extra_neighbor_depth":0,
 "app_mode":'query_new_rel',
-"attend_neighbours":0,
+"attend_neighbours":1,
 "no_meta":False,
 "random_embed":False,
-"fine_tune":True,
+"fine_tune":False,
 "sort_neighbours":False
 }
 
@@ -56,29 +56,42 @@ entity_list=[]
 with open('extra_files/NELLent_list.json') as handle:
     entity_list=json.loads(handle.read())
 
+rel2candidates = json.load(open('extra_files/rel2candidates.json'))
+
+
 with open('extra_files/NELLoptions.json') as handle:
     options = json.loads(handle.read())
 model = Trainer(args)
 
 def predict(input):
 
+    for ent in [input["e1"] , input["e2"], input["query"]]:
+        if ent not in entity_list:
+            return [ent+" not in Knowledge Base!!"]
+
     support = [
             'concept:'+input["e1"],
-            input["rel"],
+            'concept:'+input["rel"],
             'concept:'+input["e2"]
             # "concept:automobilemodel:windstar",
             # "concept:producedby",
             # "concept:company:ford001"
         ]
 
+
     head = 'concept:'+input["query"]
     # head = "concept:product:wii_console"
 
     candidate_type = support[2].split(":")[1]
 
-    raw_candidates = options['ents'][candidate_type][:100]
+    raw_candidates = options['ents'][candidate_type][:]
 
     candidates = []
+
+    # if("conceppt:"+input["rel"] in rel2candidates):
+    #     print("found in rel2candidates")
+    #     candidates = rel2candidates["concept:"+input["rel"]]
+    # else: 
     for cand in raw_candidates:
         candidates.append("concept:"+candidate_type+":"+cand)
 
@@ -87,7 +100,7 @@ def predict(input):
     for i in range(len(output)):
         output[i]=output[i].replace('concept:','')
     
-    print(output)
+    # print(output)
     return output
 
 #----------------------------------------------------------------------------#
@@ -99,12 +112,15 @@ def home():
     if request.method == 'POST':
         ## Called after submit button is clicked
         output = predict(request.form)
-        template = render_template('project.html', results=output, entity_list=entity_list)
+        template = render_template('project.html', results=output, entity_list=entity_list,
+            e1=request.form["e1"],e2=request.form["e2"], rel=request.form["rel"], query=request.form["query"] )
         # print(template)
         return template
 
     if request.method == 'GET':
-        return render_template('project.html',entity_list=entity_list )
+        # print(entity_list[:2])
+        return render_template('project.html',entity_list=entity_list , 
+            e1="automobilemodel:windstar", e2="company:ford001", rel="producedby", query="product:outlook_email")
 
 
 if not app.debug:

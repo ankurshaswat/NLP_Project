@@ -1,6 +1,7 @@
 import json
 # import logging
 import numpy as np
+import random
 # import pickle
 # import torch
 # import torch.nn.functional as F
@@ -27,9 +28,12 @@ class Trainer(object):
 
     def __init__(self, arg):
         super(Trainer, self).__init__()
+
+       
         for k, v in arg.items():
         # for k, v in vars(arg).items():
             setattr(self, k, v)
+
 
         if self.app_mode == 'train':
 
@@ -59,7 +63,10 @@ class Trainer(object):
         self.matcher = EmbedMatcher(self.embed_dim, self.num_symbols, use_pretrain=self.use_pretrain, embed=self.symbol2vec, dropout=self.dropout,
                                     batch_size=self.batch_size, process_steps=self.process_steps, finetune=self.fine_tune,
                                     aggregate=self.aggregate, attend_neighbours=self.attend_neighbours)
-        self.matcher#.cuda()
+ 
+        self.save_path='models/' + self.prefix
+        self.load() # load model
+        # self.matcher#.cuda()
 
         self.batch_nums = 0
 
@@ -85,6 +92,15 @@ class Trainer(object):
 
         self.e1rel_e2 = defaultdict(list)
         self.e1rel_e2 = json.load(open(self.dataset + '/e1rel_e2.json'))
+
+
+        # setup random seeds
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
+
+
+
 
         #logging.info(
             # 'BUILDING GRAPH OBJECT FOR {} DATASET'.format(arg.dataset))
@@ -322,6 +338,12 @@ class Trainer(object):
     def rank(self,support,head,candidates,meta = True):
         self.matcher.eval()
 
+        print("\n\nQUERY: {}".format(head))
+        print("\n\n CANDIDATES (first 10): ", candidates[:10])
+
+
+        ref_head,ref_relation=support[0],support[1]
+
         symbol2id = self.symbol2id
         few = self.few
 
@@ -330,8 +352,12 @@ class Trainer(object):
         tasks = {}
 
         support_triples = [support]
+    
         support_pairs = [[symbol2id[triple[0]], symbol2id[triple[2]]]
                             for triple in support_triples]
+
+        # id2ent = {}  # id to entity mapping
+
 
         if meta:
             support_left = [self.ent2id[triple[0]]
@@ -355,6 +381,9 @@ class Trainer(object):
         for ent in candidates:
             query_pairs.append(
                 [symbol2id[head], symbol2id[ent]])
+
+            # id2ent[symbol2id[ent]] = ent
+
             if meta:
                 query_left.append(self.ent2id[head])
                 query_right.append(self.ent2id[ent])
@@ -377,8 +406,13 @@ class Trainer(object):
         scores = scores.numpy()
         sort = list(np.argsort(scores))[::-1]
 
+        print("Total candidates: ",len(candidates))
+
         all_in_rank_order = []
-        for i in sort:
+        for i in sort[:]:
+ 
             all_in_rank_order.append(self.id2symbol[query_pairs[i][1]])
+            # if(self.id2symbol[query_pairs[i][1]]=='concept:company:microsoft'):
+                # print("Rank of microsoft: ",len(all_in_rank_order))
 
         return all_in_rank_order[:10]

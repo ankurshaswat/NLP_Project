@@ -1,34 +1,34 @@
 {% extends 'index.html' %}
 {% block content %}
-		  		<h1> Project-Title </h1>
+		  		<h1> One Shot Learning of relations in Knowledge Graphs </h1>
 				
 
 				<p>
 				    <u><span style="font-size:22px;"></span></u></p>
-				<p> Usage instructions </p>
+				<p> Enter an example for a relation, and enter the query head to find most likely tail entities </p>
 
 				<form action="" method="post" name="query">
 					<p class="form form-reset">
 
             <div class="ui-widget">
             <label for="e1"> Subject: </label>
-            <input id= "e1" name="e1" size="100" type="text" value="automobilemodel:windstar" /></p>
+            <input id= "e1" name="e1" size="100" type="text" value={{e1|safe}} /></p>
             </div>
  
             <div class="ui-widget">
             <label for="rel"> Relation: </label>
-            <input id= "rel" name="rel" size="100" type="text" value="producedby"/></p>
+            <input id= "rel" name="rel" size="100" type="text" value={{rel}} /></p>
             </div>
 
             <div class="ui-widget">
             <label for="e2"> Object: </label>            
-            <input id="e2" name="e2" size="100" type="text" value="company:ford001" /></p>
+            <input id="e2" name="e2" size="100" type="text" value={{e2|safe}} /></p>
             </div>
 
 
             <div class="ui-widget">            
             <label for="query"> Query: </label>                                    
-            <input id="query" name="query" size="100" type="text" value="product:wii_console"/></p>
+            <input id="query" name="query" size="100" type="text" value={{query}} /></p>
             </div>
 
 
@@ -48,5 +48,5 @@
 {% endblock %}
 {% block proj_details %}
         <p> Project Report can be found <a href="report.pdf" target="_blank"> here. </a> </p>
-        <p> Credits: This work was done as part of <a href="http://www.cse.iitd.ac.in/~mausam/courses/col772/spring2019/" target="_blank"> COL772: Natural Language Processing - Spring 2019 </a> by <a href="" target="_blank">Student1 </a> and <a href="" target="_blank"> Student2 </a> </p>
+        <p> Credits: This work was done as part of <a href="http://www.cse.iitd.ac.in/~mausam/courses/col772/spring2019/" target="_blank"> COL772: Natural Language Processing - Spring 2019 </a> by <a href="" target="_blank">Sushant Rathi </a> and <a href="" target="_blank"> Shashwat Shivam </a> </p>
 {% endblock %}

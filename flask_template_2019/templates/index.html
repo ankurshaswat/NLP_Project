@@ -209,13 +209,31 @@ function load_menu (e) {
     //   "product:wii"
     // ];
     $( "#e1" ).autocomplete({
-      source: entity_list
+      minLength:3,
+      source: function(request, response) {
+        var results = $.ui.autocomplete.filter(entity_list, request.term);
+
+        response(results.slice(0, 20));
+      }
     });
     $( "#e2" ).autocomplete({
-      source: entity_list
+      minLength:3,
+      source: function(request, response) {
+        var results = $.ui.autocomplete.filter(entity_list, request.term);
+
+        response(results.slice(0, 20));
+      }
+
     });
     $( "#query" ).autocomplete({
-      source: entity_list
+      minLength:3,      
+      source: function(request, response) {
+        var results = $.ui.autocomplete.filter(entity_list, request.term);
+
+        response(results.slice(0, 20));
+      }
+
+
     });
 
 
@@ -226,11 +244,11 @@ function load_menu (e) {
 
 
 
-     <!-- <body  onload="javascript:load_menu()">
-        <img id="watermark" src="https://www.cse.iitd.ac.in/dair/images/banners/iitdelhi_logo50.png"> -->
+     <body  onload="javascript:load_menu()">
+        <img id="watermark" src="https://www.cse.iitd.ac.in/dair/images/banners/iitdelhi_logo50.png">
   	 <div>
-      		 <!-- <div id="divMenu" style="width: 200px; float: left;"> -->
-              	<!-- </div> -->
+      		 <div id="divMenu" style="width: 200px; float: left;">
+              	</div>
 		<div class="container">
 			<div style="height: 20px"></div>
 			<div id="content">
